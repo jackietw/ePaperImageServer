@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Paper Image Processor</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Cropper.js CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="glass-container">
+        <header>
+            <h1>E-Paper Image Processor</h1>
+            <p>6-Color Dithering & Resizing</p>
+        </header>
+
+        <main>
+            <div class="upload-section" id="upload-section">
+                <input type="file" id="image-upload" accept="image/*" hidden>
+                <label for="image-upload" class="upload-label">
+                    <div class="upload-icon">📁</div>
+                    <span>點擊或拖曳圖片至此上傳</span>
+                </label>
+            </div>
+
+            <div class="editor-section hidden" id="editor-section">
+                <div class="workspace">
+                    <div class="canvas-container">
+                        <img id="image-workspace" src="" alt="Workspace">
+                    </div>
+                    <div class="controls">
+                        <div class="toolbar">
+                            <button id="rotate-btn" class="icon-btn" title="旋轉90度">↻ 旋轉</button>
+                            <button id="reset-btn" class="icon-btn" title="重設設定">↺ 重設</button>
+                            <button id="restart-btn" class="icon-btn danger-btn" title="重新上傳">✕ 重新上傳</button>
+                        </div>
+                        <div class="control-group">
+                            <label>輸出尺寸</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="ratio" value="landscape" checked> 800 x 480</label>
+                                <label><input type="radio" name="ratio" value="portrait"> 480 x 800</label>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="saturation">飽和度 (Saturation): <span id="sat-val">0</span></label>
+                            <input type="range" id="saturation" min="-100" max="100" value="0">
+                        </div>
+
+                        <div class="control-group">
+                            <label for="contrast">對比度 (Contrast): <span id="con-val">0</span></label>
+                            <input type="range" id="contrast" min="-100" max="100" value="0">
+                        </div>
+
+                        <button id="process-btn" class="primary-btn">套用 6 色抖動處理</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-section hidden" id="result-section">
+                <h2>處理預覽</h2>
+                <div class="result-preview">
+                    <canvas id="result-canvas"></canvas>
+                </div>
+                <div class="actions">
+                    <button id="back-btn" class="secondary-btn">重新編輯</button>
+                    <button id="upload-server-btn" class="primary-btn">儲存至 VPS</button>
+                </div>
+                <p id="upload-status"></p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Cropper.js JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+:root {
+    --primary-color: #3b82f6;
+    --primary-hover: #2563eb;
+    --bg-color: #0f172a;
+    --glass-bg: rgba(30, 41, 59, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    background-image: 
+        radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+        radial-gradient(at 50% 0%, hsla(225,39%,30%,0.3) 0, transparent 50%), 
+        radial-gradient(at 100% 0%, hsla(339,49%,30%,0.3) 0, transparent 50%);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.glass-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 30px;
+    width: 100%;
+    max-width: 900px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    background: linear-gradient(to right, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+header p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Upload Section */
+.upload-section {
+    border: 2px dashed var(--glass-border);
+    border-radius: 12px;
+    padding: 60px 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.upload-section:hover, .upload-section.dragover {
+    border-color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.upload-label {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.upload-icon {
+    font-size: 3rem;
+}
+
+/* Editor Section */
+.workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.canvas-container {
+    background: #000;
+    border-radius: 4px; /* Slight screen curvature */
+    overflow: hidden;
+    position: relative;
+    margin: 0 auto;
+    
+    /* Picture Frame Effect */
+    border: 12px solid #1a1c23; /* Dark matte frame */
+    box-sizing: content-box; /* Ensures JS calculations apply only to the screen area */
+    box-shadow: 
+        inset 0 0 0 2px #000, /* inner shadow */
+        0 8px 30px rgba(0, 0, 0, 0.6); /* outer drop shadow */
+}
+
+.canvas-container img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Force crop box to exactly match the container, overriding sub-pixel gaps */
+.cropper-crop-box {
+    width: 100% !important;
+    height: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+}
+
+/* Hide default Cropper.js blue outlines and grab points for a clean picture frame look */
+.cropper-view-box {
+    outline: none !important;
+}
+.cropper-line, .cropper-point {
+    display: none !important;
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-group label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.radio-group {
+    display: flex;
+    gap: 20px;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+input[type="range"] {
+    width: 100%;
+    accent-color: var(--primary-color);
+}
+
+/* Buttons */
+button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.primary-btn {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.primary-btn:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.secondary-btn {
+    background-color: transparent;
+    border: 1px solid var(--text-secondary);
+    color: var(--text-primary);
+}
+
+.secondary-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Toolbar & Icon Buttons */
+.toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    justify-content: space-between;
+}
+
+.icon-btn {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border-radius: 6px;
+    flex: 1;
+}
+
+.icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.danger-btn {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+
+.danger-btn:hover {
+    background-color: rgba(239, 68, 68, 0.4);
+}
+
+/* Result Section */
+.result-section {
+    text-align: center;
+}
+
+.result-section h2 {
+    margin-bottom: 20px;
+}
+
+.result-preview {
+    margin-bottom: 20px;
+    background: #000;
+    border-radius: 8px;
+    padding: 10px;
+    display: inline-block;
+}
+
+#result-canvas {
+    max-width: 100%;
+    border: 1px solid var(--glass-border);
+}
+
+.actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+#upload-status {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: #4ade80; /* Green for success */
+}
+
