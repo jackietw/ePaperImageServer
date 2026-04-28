@@ -1,6 +1,7 @@
 // DOM Elements
 const uploadSection = document.getElementById('upload-section');
 const imageUpload = document.getElementById('image-upload');
+const uploadText = document.getElementById('upload-text');
 const editorSection = document.getElementById('editor-section');
 const imageWorkspace = document.getElementById('image-workspace');
 const radioRatios = document.getElementsByName('ratio');
@@ -59,10 +60,57 @@ imageUpload.addEventListener('change', function(e) {
 });
 
 function loadImage(file) {
+    const isHeic = file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic';
+    
+    // 處理 HEIC 格式
+    if (isHeic) {
+        if (typeof heic2any === 'undefined') {
+            alert("HEIC 轉換模組尚未載入，請確認網路連線後再試。");
+            return;
+        }
+        
+        const originalText = uploadText.textContent;
+        uploadText.textContent = "正在處理 HEIC 格式轉換，請稍候...";
+        uploadSection.style.pointerEvents = 'none'; // 轉換期間防止重複點擊
+        
+        heic2any({
+            blob: file,
+            toType: "image/jpeg",
+            quality: 0.8
+        }).then(conversionResult => {
+            // 恢復 UI 狀態
+            uploadText.textContent = originalText;
+            uploadSection.style.pointerEvents = 'auto';
+            
+            // heic2any 在遇到連拍照片時可能會回傳陣列，我們取第一張
+            const blob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+            
+            // 將轉換後的 Blob 給 Cropper.js 讀取
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imageWorkspace.src = e.target.result;
+                uploadSection.classList.add('hidden');
+                editorSection.classList.remove('hidden');
+                initCropper();
+            }
+            reader.readAsDataURL(blob);
+            
+        }).catch(e => {
+            console.error(e);
+            alert("HEIC 轉換失敗，請確認檔案是否損毀！");
+            uploadText.textContent = originalText;
+            uploadSection.style.pointerEvents = 'auto';
+        });
+        
+        return; // 中斷後續的常規圖片處理流程
+    }
+
+    // 處理常規圖片 (JPEG, PNG, etc.)
     if (!file.type.match('image.*')) {
         alert("請上傳圖片檔案！");
         return;
     }
+    
     const reader = new FileReader();
     reader.onload = function(e) {
         imageWorkspace.src = e.target.result;

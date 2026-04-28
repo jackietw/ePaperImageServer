@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <!-- Cropper.js CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
 </head>
+
 <body>
     <div class="glass-container">
         <header>
@@ -17,10 +19,10 @@
 
         <main>
             <div class="upload-section" id="upload-section">
-                <input type="file" id="image-upload" accept="image/*" hidden>
+                <input type="file" id="image-upload" accept="image/*,.heic" hidden>
                 <label for="image-upload" class="upload-label">
                     <div class="upload-icon">📁</div>
-                    <span>點擊或拖曳圖片至此上傳</span>
+                    <span id="upload-text">點擊或拖曳圖片至此上傳</span>
                 </label>
             </div>
 
@@ -74,6 +76,9 @@
 
     <!-- Cropper.js JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <!-- HEIC to JPEG converter -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <script src="script.js"></script>
 </body>
+
 </html>

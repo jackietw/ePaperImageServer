@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Paper 圖片管理後台</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <header class="admin-header">
+        <h1>圖片管理中心</h1>
+        <p>檢視、預覽及刪除已上傳至電子紙的圖片</p>
+        <div style="margin-bottom: 20px;">
+            <a href="index.html" class="back-link">返回上傳頁</a>
+        </div>
+        <div id="latest-status-container" class="latest-status-container">
+            <!-- 狀態將由 JS 動態生成 -->
+        </div>
+    </header>
+
+    <main class="gallery-container">
+        <!-- 圖片縮圖將由 JS 動態生成 -->
+        <div id="gallery-grid" class="gallery-grid">
+            <div class="loading-text">載入中...</div>
+        </div>
+    </main>
+
+    <!-- Lightbox 預覽視窗 -->
+    <div id="lightbox" class="lightbox">
+        <div class="lightbox-content">
+            <span class="close-btn" id="lightbox-close">&times;</span>
+            <img id="lightbox-img" src="" alt="預覽圖片">
+        </div>
+    </div>
+
+    <!-- 自訂確認刪除彈窗 -->
+    <div id="confirm-modal" class="confirm-modal">
+        <div class="confirm-box">
+            <h3>確認刪除</h3>
+            <p>你確定要刪除這張圖片嗎？此操作無法復原。</p>
+            <div class="confirm-actions">
+                <button id="cancel-delete" class="btn btn-secondary">取消</button>
+                <button id="confirm-delete" class="btn btn-danger">確認刪除</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
