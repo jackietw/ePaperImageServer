@@ -20,6 +20,15 @@ const uploadServerBtn = document.getElementById('upload-server-btn');
 const uploadStatus = document.getElementById('upload-status');
 const canvasContainer = document.querySelector('.canvas-container');
 
+// Mobile Menu Toggle
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+const mainNav = document.querySelector('.main-nav');
+if (mobileMenuBtn && mainNav) {
+    mobileMenuBtn.addEventListener('click', () => {
+        mainNav.classList.toggle('show');
+    });
+}
+
 // E-Paper Palette (Black, White, Green, Blue, Red, Yellow)
 const PALETTE = [
     [0, 0, 0],       // Black (#000000)
@@ -134,8 +143,8 @@ function initCropper() {
             currentWidth = (radio.value === 'landscape') ? 800 : 480;
             currentHeight = (radio.value === 'landscape') ? 480 : 800;
             ratio = currentWidth / currentHeight;
-            let maxAvailableHeight = window.innerHeight - 300;
-            let maxW = window.innerWidth - 60;
+            let maxAvailableHeight = window.innerHeight - 400;
+            let maxW = window.innerWidth - 120; // 預留手機上的 Padding 與 Border 空間
             
             // Calculate a scaling factor
             let scale = Math.min(1, maxW / currentWidth, maxAvailableHeight / currentHeight);

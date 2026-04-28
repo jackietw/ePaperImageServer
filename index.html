@@ -5,16 +5,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Paper Image Processor</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2">
     <!-- Cropper.js CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
 </head>
 
 <body>
     <div class="glass-container">
-        <header>
+        <header style="position: relative;">
+            <div class="hamburger-menu" id="mobile-menu-btn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
             <h1>E-Paper Image Processor</h1>
             <p>6-Color Dithering & Resizing</p>
+            <nav class="main-nav">
+                <a href="index.html" class="nav-btn active">上傳圖檔</a>
+                <a href="admin.html" class="nav-btn">管理圖檔</a>
+            </nav>
         </header>
 
         <main>

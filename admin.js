@@ -10,6 +10,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const latestStatusContainer = document.getElementById('latest-status-container');
     
+    // Mobile Menu Toggle
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mainNav = document.querySelector('.main-nav');
+    if (mobileMenuBtn && mainNav) {
+        mobileMenuBtn.addEventListener('click', () => {
+            mainNav.classList.toggle('show');
+        });
+    }
+    
     let fileToDelete = null;
 
     // 載入圖片清單
