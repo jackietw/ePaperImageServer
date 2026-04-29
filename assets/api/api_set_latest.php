@@ -13,7 +13,7 @@ if (!isset($input['filename']) || empty($input['filename'])) {
 }
 
 $fileName = basename($input['filename']);
-$uploadDir = __DIR__ . '/processed/';
+$uploadDir = __DIR__ . '/../../processed/';
 $filePath = $uploadDir . $fileName;
 $latestPath = $uploadDir . 'latest.png';
 

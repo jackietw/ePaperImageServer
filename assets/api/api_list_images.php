@@ -3,7 +3,7 @@ header('Content-Type: application/json');
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET");
 
-$uploadDir = __DIR__ . '/processed/';
+$uploadDir = __DIR__ . '/../../processed/';
 $images = [];
 
 if (is_dir($uploadDir)) {
@@ -15,12 +15,12 @@ if (is_dir($uploadDir)) {
             $filePath = $uploadDir . $file;
             // 簡易檢查副檔名
             if (is_file($filePath) && preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $file)) {
-                
+
                 // 檢查對應的縮圖是否存在 (現在縮圖強制存成 .jpg)
                 $thumbName = 'thumb_' . preg_replace('/\.(png|jpe?g|gif|webp)$/i', '.jpg', $file);
                 $thumbPathFull = $uploadDir . $thumbName;
                 $thumbPath = file_exists($thumbPathFull) ? 'processed/' . $thumbName : 'processed/' . $file;
-                
+
                 $images[] = [
                     'name' => $file,
                     'path' => 'processed/' . $file,
@@ -34,7 +34,7 @@ if (is_dir($uploadDir)) {
 }
 
 // 依照修改時間排序，最新的在最前面
-usort($images, function($a, $b) {
+usort($images, function ($a, $b) {
     return $b['time'] - $a['time'];
 });
 

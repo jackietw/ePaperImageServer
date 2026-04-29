@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 載入圖片清單
     function loadImages() {
-        fetch('api_list_images.php')
+        fetch('assets/api/api_list_images.php')
             .then(response => response.json())
             .then(data => {
                 galleryGrid.innerHTML = ''; // 清空載入中字樣
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 設為預設圖片 (latest.png)
     function setAsLatest(filename) {
-        fetch('api_set_latest.php', {
+        fetch('assets/api/api_set_latest.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmDeleteBtn.addEventListener('click', () => {
         if (!fileToDelete) return;
 
-        fetch('api_delete_image.php', {
+        fetch('assets/api/api_delete_image.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 檢查最新預設圖狀態
     function checkLatestStatus() {
-        fetch('api_check_latest.php')
+        fetch('assets/api/api_check_latest.php')
             .then(res => res.json())
             .then(data => {
                 if (data.exists) {

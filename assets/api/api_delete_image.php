@@ -13,7 +13,7 @@ if (!isset($input['filename']) || empty($input['filename'])) {
 }
 
 $fileName = basename($input['filename']); // 使用 basename 避免目錄穿越漏洞
-$uploadDir = __DIR__ . '/processed/';
+$uploadDir = __DIR__ . '/../../processed/';
 $filePath = $uploadDir . $fileName;
 $thumbPath = $uploadDir . 'thumb_' . preg_replace('/\.(png|jpe?g|gif|webp)$/i', '.jpg', $fileName);
 
