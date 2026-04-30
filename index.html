@@ -55,6 +55,18 @@
                         </div>
 
                         <div class="control-group">
+                            <label>抖動演算法 (Dithering)</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="dithering_algo" value="floyd" checked>
+                                    Floyd-Steinberg</label>
+                                <label><input type="radio" name="dithering_algo" value="stucki"> Stucki</label>
+                                <label><input type="radio" name="dithering_algo" value="atkinson"> Atkinson</label>
+                                <label><input type="radio" name="dithering_algo" value="yliluoma"> Joel Yliluoma</label>
+                                <label><input type="radio" name="dithering_algo" value="bluenoise"> Blue Noise</label>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
                             <label for="saturation">飽和度 (Saturation): <span id="sat-val">0</span></label>
                             <input type="range" id="saturation" min="-100" max="100" value="0">
                         </div>
@@ -76,7 +88,7 @@
                 </div>
                 <div class="actions">
                     <button id="back-btn" class="secondary-btn">重新編輯</button>
-                    <button id="upload-server-btn" class="primary-btn">儲存至 VPS</button>
+                    <button id="upload-server-btn" class="primary-btn">儲存</button>
                 </div>
                 <p id="upload-status"></p>
             </div>
@@ -89,8 +101,7 @@
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <script src="assets/js/script.js"></script>
     <!-- footer -->
-    <footer
-        style="position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; padding: 10px;">
+    <footer style="position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; padding: 10px;">
         <p>@2026 E-Paper Upload Website by Jackie | Version 1.1</p>
     </footer>
 </body>

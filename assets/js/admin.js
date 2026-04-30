@@ -1,3 +1,7 @@
+// Create By Jackie
+// Date: 2026/4/30
+// Copyright 2026 Jackie All Rights Reserved.
+
 document.addEventListener('DOMContentLoaded', () => {
     const galleryGrid = document.getElementById('gallery-grid');
     const lightbox = document.getElementById('lightbox');
@@ -55,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 設為預設圖片 (latest.png)
+    // 設為預設圖片 (latest.bmp)
     function setAsLatest(filename) {
         fetch('assets/api/api_set_latest.php', {
             method: 'POST',
@@ -202,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             if (data.success) {
                 // 如果刪除的是預設圖，更新上方狀態
-                if (fileToDelete === 'latest.png') {
+                if (fileToDelete === 'latest.bmp') {
                     checkLatestStatus();
                 } else {
                     // 否則重新載入列表以更新 UI
@@ -234,10 +238,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     `;
                     document.getElementById('preview-latest-btn').addEventListener('click', () => {
-                        openLightbox('processed/latest.png');
+                        openLightbox('processed/latest.bmp');
                     });
                     document.getElementById('delete-latest-btn').addEventListener('click', () => {
-                        openConfirmModal('latest.png');
+                        openConfirmModal('latest.bmp');
                     });
                 } else {
                     latestStatusContainer.innerHTML = `<span class="text-danger">沒有預設顯示圖檔</span>`;

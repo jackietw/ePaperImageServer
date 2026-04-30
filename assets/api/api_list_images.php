@@ -11,13 +11,13 @@ if (is_dir($uploadDir)) {
     $files = scandir($uploadDir);
     foreach ($files as $file) {
         // 過濾掉 ., .., latest.png 以及縮圖 (以 thumb_ 開頭)
-        if ($file !== '.' && $file !== '..' && $file !== 'latest.png' && strpos($file, 'thumb_') !== 0) {
+        if ($file !== '.' && $file !== '..' && $file !== 'latest.bmp' && strpos($file, 'thumb_') !== 0) {
             $filePath = $uploadDir . $file;
             // 簡易檢查副檔名
-            if (is_file($filePath) && preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $file)) {
+            if (is_file($filePath) && preg_match('/\.(jpg|jpeg|png|gif|webp|bmp)$/i', $file)) {
 
                 // 檢查對應的縮圖是否存在 (現在縮圖強制存成 .jpg)
-                $thumbName = 'thumb_' . preg_replace('/\.(png|jpe?g|gif|webp)$/i', '.jpg', $file);
+                $thumbName = 'thumb_' . preg_replace('/\.(png|jpe?g|gif|webp|bmp)$/i', '.jpg', $file);
                 $thumbPathFull = $uploadDir . $thumbName;
                 $thumbPath = file_exists($thumbPathFull) ? 'processed/' . $thumbName : 'processed/' . $file;
 

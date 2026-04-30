@@ -15,7 +15,7 @@ if (!isset($input['filename']) || empty($input['filename'])) {
 $fileName = basename($input['filename']);
 $uploadDir = __DIR__ . '/../../processed/';
 $filePath = $uploadDir . $fileName;
-$latestPath = $uploadDir . 'latest.png';
+$latestPath = $uploadDir . 'latest.bmp';
 
 if (file_exists($filePath) && is_file($filePath)) {
     if (copy($filePath, $latestPath)) {

@@ -1,3 +1,7 @@
+// Create By Jackie
+// Date: 2026/4/30
+// Copyright 2026 Jackie All Rights Reserved.
+
 // DOM Elements
 const uploadSection = document.getElementById('upload-section');
 const imageUpload = document.getElementById('image-upload');
@@ -298,8 +302,26 @@ processBtn.addEventListener('click', () => {
     const conValue = parseInt(contrastSlider.value); // -100 to 100
     applyAdjustments(imageData.data, satValue, conValue);
 
-    // 3. Apply 6-Color Floyd-Steinberg Dithering
-    applyFloydSteinberg(imageData, currentWidth, currentHeight);
+    // 3. Apply Dithering
+    let ditherAlgo = 'floyd';
+    const radioDither = document.getElementsByName('dithering_algo');
+    if (radioDither) {
+        radioDither.forEach(radio => {
+            if (radio.checked) ditherAlgo = radio.value;
+        });
+    }
+
+    if (ditherAlgo === 'stucki') {
+        applyStuckiDithering(imageData, currentWidth, currentHeight);
+    } else if (ditherAlgo === 'atkinson') {
+        applyAtkinsonDithering(imageData, currentWidth, currentHeight);
+    } else if (ditherAlgo === 'yliluoma') {
+        applyYliluomaDithering(imageData, currentWidth, currentHeight);
+    } else if (ditherAlgo === 'bluenoise') {
+        applyBlueNoiseDithering(imageData, currentWidth, currentHeight);
+    } else {
+        applyFloydSteinberg(imageData, currentWidth, currentHeight);
+    }
 
     // 4. Render to Result Canvas
     resultCanvas.width = currentWidth;
@@ -325,16 +347,24 @@ uploadServerBtn.addEventListener('click', () => {
     uploadServerBtn.textContent = "上傳中...";
     uploadStatus.textContent = "";
 
+    // Export as PNG first to minimize upload payload size (avoids 1MB server limits)
     resultCanvas.toBlob((blob) => {
         const formData = new FormData();
-        // Send as PNG to preserve exact colors (no JPG compression artifacts)
         formData.append('image', blob, 'epaper_image.png');
 
-        fetch('upload.php', {
+        fetch('assets/api/api_upload.php', {
             method: 'POST',
             body: formData
         })
-            .then(response => response.json())
+            .then(async response => {
+                const text = await response.text();
+                try {
+                    return JSON.parse(text);
+                } catch (err) {
+                    console.error("Server returned non-JSON:", text);
+                    throw new Error("Invalid JSON response from server");
+                }
+            })
             .then(data => {
                 uploadServerBtn.disabled = false;
                 uploadServerBtn.textContent = "儲存";
@@ -349,7 +379,7 @@ uploadServerBtn.addEventListener('click', () => {
             .catch(error => {
                 console.error('Error:', error);
                 uploadServerBtn.disabled = false;
-                uploadServerBtn.textContent = "儲存至 VPS";
+                uploadServerBtn.textContent = "儲存";
                 uploadStatus.style.color = "#ef4444";
                 uploadStatus.textContent = "上傳失敗，請檢查網路連線或伺服器設定。";
             });
@@ -475,3 +505,399 @@ function applyFloydSteinberg(imageData, width, height) {
         }
     }
 }
+
+// Helper: Atkinson Dithering
+function applyAtkinsonDithering(imageData, width, height) {
+    const data = imageData.data;
+    let index = 0;
+    const width4 = width * 4;
+    const w = 0.125; // 1/8
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const oldR = data[index];
+            const oldG = data[index + 1];
+            const oldB = data[index + 2];
+
+            const newColor = findClosestPaletteColor(oldR, oldG, oldB);
+
+            data[index] = newColor[0];
+            data[index + 1] = newColor[1];
+            data[index + 2] = newColor[2];
+            data[index + 3] = 255;
+
+            const errR = oldR - newColor[0];
+            const errG = oldG - newColor[1];
+            const errB = oldB - newColor[2];
+
+            // Distribute error
+            // x + 1, y (1/8)
+            if (x + 1 < width) {
+                const i = index + 4;
+                data[i] = Math.min(255, Math.max(0, data[i] + errR * w));
+                data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + errG * w));
+                data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + errB * w));
+            }
+            // x + 2, y (1/8)
+            if (x + 2 < width) {
+                const i = index + 8;
+                data[i] = Math.min(255, Math.max(0, data[i] + errR * w));
+                data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + errG * w));
+                data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + errB * w));
+            }
+
+            if (y + 1 < height) {
+                // x - 1, y + 1 (1/8)
+                if (x - 1 >= 0) {
+                    const i = index + width4 - 4;
+                    data[i] = Math.min(255, Math.max(0, data[i] + errR * w));
+                    data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + errG * w));
+                    data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + errB * w));
+                }
+                // x, y + 1 (1/8)
+                const i2 = index + width4;
+                data[i2] = Math.min(255, Math.max(0, data[i2] + errR * w));
+                data[i2 + 1] = Math.min(255, Math.max(0, data[i2 + 1] + errG * w));
+                data[i2 + 2] = Math.min(255, Math.max(0, data[i2 + 2] + errB * w));
+
+                // x + 1, y + 1 (1/8)
+                if (x + 1 < width) {
+                    const i3 = index + width4 + 4;
+                    data[i3] = Math.min(255, Math.max(0, data[i3] + errR * w));
+                    data[i3 + 1] = Math.min(255, Math.max(0, data[i3 + 1] + errG * w));
+                    data[i3 + 2] = Math.min(255, Math.max(0, data[i3 + 2] + errB * w));
+                }
+            }
+
+            // x, y + 2 (1/8)
+            if (y + 2 < height) {
+                const i4 = index + width4 * 2;
+                data[i4] = Math.min(255, Math.max(0, data[i4] + errR * w));
+                data[i4 + 1] = Math.min(255, Math.max(0, data[i4 + 1] + errG * w));
+                data[i4 + 2] = Math.min(255, Math.max(0, data[i4 + 2] + errB * w));
+            }
+
+            index += 4;
+        }
+    }
+}
+
+// Bayer 8x8 matrix flattened for Yliluoma algorithm
+const bayer8x8 = [
+    0, 48, 12, 60, 3, 51, 15, 63,
+    32, 16, 44, 28, 35, 19, 47, 31,
+    8, 56, 4, 52, 11, 59, 7, 55,
+    40, 24, 36, 20, 43, 27, 39, 23,
+    2, 50, 14, 62, 1, 49, 13, 61,
+    34, 18, 46, 30, 33, 17, 45, 29,
+    10, 58, 6, 54, 9, 57, 5, 53,
+    42, 26, 38, 22, 41, 25, 37, 21
+];
+
+// Helper: Joel Yliluoma's Ordered Dithering (Bisqwit)
+function applyYliluomaDithering(imageData, width, height) {
+    const data = imageData.data;
+    let index = 0;
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const tr = data[index];
+            const tg = data[index + 1];
+            const tb = data[index + 2];
+
+            let minError = Infinity;
+            let bestP1 = PALETTE[0];
+            let bestP2 = PALETTE[0];
+            let bestRatio = 0;
+
+            for (let i = 0; i < PALETTE.length; i++) {
+                for (let j = i; j < PALETTE.length; j++) {
+                    const p1 = PALETTE[i];
+                    const p2 = PALETTE[j];
+
+                    if (i === j) {
+                        const dr = tr - p1[0];
+                        const dg = tg - p1[1];
+                        const db = tb - p1[2];
+                        const err = dr * dr + dg * dg + db * db;
+                        if (err < minError) {
+                            minError = err;
+                            bestP1 = p1;
+                            bestP2 = p1;
+                            bestRatio = 1;
+                        }
+                    } else {
+                        const vx = p1[0] - p2[0];
+                        const vy = p1[1] - p2[1];
+                        const vz = p1[2] - p2[2];
+
+                        const cx = tr - p2[0];
+                        const cy = tg - p2[1];
+                        const cz = tb - p2[2];
+
+                        const vDotV = vx * vx + vy * vy + vz * vz;
+                        const cDotV = cx * vx + cy * vy + cz * vz;
+
+                        let ratio = cDotV / vDotV;
+                        if (ratio < 0) ratio = 0;
+                        else if (ratio > 1) ratio = 1;
+
+                        const ax = p2[0] + ratio * vx;
+                        const ay = p2[1] + ratio * vy;
+                        const az = p2[2] + ratio * vz;
+
+                        const dr = tr - ax;
+                        const dg = tg - ay;
+                        const db = tb - az;
+                        const err = dr * dr + dg * dg + db * db;
+
+                        // Mix penalty to prevent blending highly contrasting colors (e.g., Red + Green -> Yellow)
+                        // A lower value creates smoother blends but might introduce noisy speckles of weird colors
+                        const mixPenalty = ratio * (1 - ratio) * vDotV * 0.1;
+                        const totalError = err + mixPenalty;
+
+                        if (totalError < minError) {
+                            minError = totalError;
+                            bestP1 = p1;
+                            bestP2 = p2;
+                            bestRatio = ratio;
+                        }
+                    }
+                }
+            }
+
+            const bayerVal = bayer8x8[(y & 7) * 8 + (x & 7)];
+            const threshold = (bayerVal + 0.5) / 64.0;
+
+            const chosenColor = (bestRatio > threshold) ? bestP1 : bestP2;
+
+            data[index] = chosenColor[0];
+            data[index + 1] = chosenColor[1];
+            data[index + 2] = chosenColor[2];
+            data[index + 3] = 255;
+
+            index += 4;
+        }
+    }
+}
+
+// Helper: Stucki Dithering (Error Diffusion)
+function applyStuckiDithering(imageData, width, height) {
+    const data = imageData.data;
+    let index = 0;
+    const width4 = width * 4;
+
+    const w8 = 8 / 42, w4 = 4 / 42, w2 = 2 / 42, w1 = 1 / 42;
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const oldR = data[index];
+            const oldG = data[index + 1];
+            const oldB = data[index + 2];
+
+            const newColor = findClosestPaletteColor(oldR, oldG, oldB);
+
+            data[index] = newColor[0];
+            data[index + 1] = newColor[1];
+            data[index + 2] = newColor[2];
+            data[index + 3] = 255;
+
+            const errR = oldR - newColor[0];
+            const errG = oldG - newColor[1];
+            const errB = oldB - newColor[2];
+
+            // row 0
+            if (x + 1 < width) {
+                let i = index + 4;
+                data[i] += errR * w8; data[i + 1] += errG * w8; data[i + 2] += errB * w8;
+            }
+            if (x + 2 < width) {
+                let i = index + 8;
+                data[i] += errR * w4; data[i + 1] += errG * w4; data[i + 2] += errB * w4;
+            }
+
+            // row 1
+            if (y + 1 < height) {
+                let offset = index + width4;
+                if (x - 2 >= 0) {
+                    let i = offset - 8;
+                    data[i] += errR * w2; data[i + 1] += errG * w2; data[i + 2] += errB * w2;
+                }
+                if (x - 1 >= 0) {
+                    let i = offset - 4;
+                    data[i] += errR * w4; data[i + 1] += errG * w4; data[i + 2] += errB * w4;
+                }
+                data[offset] += errR * w8; data[offset + 1] += errG * w8; data[offset + 2] += errB * w8;
+                if (x + 1 < width) {
+                    let i = offset + 4;
+                    data[i] += errR * w4; data[i + 1] += errG * w4; data[i + 2] += errB * w4;
+                }
+                if (x + 2 < width) {
+                    let i = offset + 8;
+                    data[i] += errR * w2; data[i + 1] += errG * w2; data[i + 2] += errB * w2;
+                }
+            }
+
+            // row 2
+            if (y + 2 < height) {
+                let offset = index + width4 * 2;
+                if (x - 2 >= 0) {
+                    let i = offset - 8;
+                    data[i] += errR * w1; data[i + 1] += errG * w1; data[i + 2] += errB * w1;
+                }
+                if (x - 1 >= 0) {
+                    let i = offset - 4;
+                    data[i] += errR * w2; data[i + 1] += errG * w2; data[i + 2] += errB * w2;
+                }
+                data[offset] += errR * w4; data[offset + 1] += errG * w4; data[offset + 2] += errB * w4;
+                if (x + 1 < width) {
+                    let i = offset + 4;
+                    data[i] += errR * w2; data[i + 1] += errG * w2; data[i + 2] += errB * w2;
+                }
+                if (x + 2 < width) {
+                    let i = offset + 8;
+                    data[i] += errR * w1; data[i + 1] += errG * w1; data[i + 2] += errB * w1;
+                }
+            }
+
+            index += 4;
+        }
+    }
+}
+
+// Helper: Interleaved Gradient Noise for Blue Noise approximation
+function getIGN(x, y) {
+    const magicZ = 52.9829189;
+    const dot = x * 0.06711056 + y * 0.00583715;
+    const fractDot = dot - Math.floor(dot);
+    const val = magicZ * fractDot;
+    return val - Math.floor(val);
+}
+
+// Helper: Blue Noise (using IGN and Bisqwit Color Mixing)
+function applyBlueNoiseDithering(imageData, width, height) {
+    const data = imageData.data;
+    let index = 0;
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const tr = data[index];
+            const tg = data[index + 1];
+            const tb = data[index + 2];
+
+            let minError = Infinity;
+            let bestP1 = PALETTE[0];
+            let bestP2 = PALETTE[0];
+            let bestRatio = 0;
+
+            for (let i = 0; i < PALETTE.length; i++) {
+                for (let j = i; j < PALETTE.length; j++) {
+                    const p1 = PALETTE[i];
+                    const p2 = PALETTE[j];
+
+                    if (i === j) {
+                        const dr = tr - p1[0];
+                        const dg = tg - p1[1];
+                        const db = tb - p1[2];
+                        const err = dr * dr + dg * dg + db * db;
+                        if (err < minError) {
+                            minError = err;
+                            bestP1 = p1;
+                            bestP2 = p1;
+                            bestRatio = 1;
+                        }
+                    } else {
+                        const vx = p1[0] - p2[0];
+                        const vy = p1[1] - p2[1];
+                        const vz = p1[2] - p2[2];
+
+                        const cx = tr - p2[0];
+                        const cy = tg - p2[1];
+                        const cz = tb - p2[2];
+
+                        const vDotV = vx * vx + vy * vy + vz * vz;
+                        const cDotV = cx * vx + cy * vy + cz * vz;
+
+                        let ratio = cDotV / vDotV;
+                        if (ratio < 0) ratio = 0;
+                        else if (ratio > 1) ratio = 1;
+
+                        const ax = p2[0] + ratio * vx;
+                        const ay = p2[1] + ratio * vy;
+                        const az = p2[2] + ratio * vz;
+
+                        const dr = tr - ax;
+                        const dg = tg - ay;
+                        const db = tb - az;
+                        const err = dr * dr + dg * dg + db * db;
+
+                        const mixPenalty = ratio * (1 - ratio) * vDotV * 0.08;
+                        const totalError = err + mixPenalty;
+
+                        if (totalError < minError) {
+                            minError = totalError;
+                            bestP1 = p1;
+                            bestP2 = p2;
+                            bestRatio = ratio;
+                        }
+                    }
+                }
+            }
+
+            const threshold = getIGN(x, y);
+            const chosenColor = (bestRatio > threshold) ? bestP1 : bestP2;
+
+            data[index] = chosenColor[0];
+            data[index + 1] = chosenColor[1];
+            data[index + 2] = chosenColor[2];
+            data[index + 3] = 255;
+
+            index += 4;
+        }
+    }
+}
+
+// Helper: Create an uncompressed 24-bit bottom-up BMP Blob
+function createBMP24Blob(imageData, width, height) {
+    const rowSize = Math.floor((width * 3 + 3) / 4) * 4;
+    const fileSize = 54 + rowSize * height;
+    const buffer = new ArrayBuffer(fileSize);
+    const view = new DataView(buffer);
+
+    view.setUint16(0, 0x4D42, false);
+    view.setUint32(2, fileSize, true);
+    view.setUint32(6, 0, true);
+    view.setUint32(10, 54, true);
+
+    view.setUint32(14, 40, true);
+    view.setInt32(18, width, true);
+    view.setInt32(22, height, true);
+    view.setUint16(26, 1, true);
+    view.setUint16(28, 24, true);
+    view.setUint32(30, 0, true);
+    view.setUint32(34, rowSize * height, true);
+    view.setInt32(38, 2835, true);
+    view.setInt32(42, 2835, true);
+    view.setUint32(46, 0, true);
+    view.setUint32(50, 0, true);
+
+    let offset = 54;
+    for (let y = height - 1; y >= 0; y--) {
+        for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const r = imageData.data[idx];
+            const g = imageData.data[idx + 1];
+            const b = imageData.data[idx + 2];
+
+            view.setUint8(offset++, b);
+            view.setUint8(offset++, g);
+            view.setUint8(offset++, r);
+        }
+        for (let p = 0; p < (rowSize - width * 3); p++) {
+            view.setUint8(offset++, 0);
+        }
+    }
+
+    return new Blob([buffer], { type: 'image/bmp' });
+}
+

@@ -5,7 +5,7 @@ header('Content-Type: application/json');
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
 
-$uploadDir = __DIR__ . '/processed/';
+$uploadDir = __DIR__ . '/../../processed/';
 
 // 若資料夾不存在，則建立它
 if (!file_exists($uploadDir)) {
@@ -18,21 +18,35 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     
     // 產生唯一檔名，保留歷史紀錄
     $timestamp = time();
-    $historyFileName = 'epaper_' . $timestamp . '.png';
-    $latestFileName = 'latest.png'; 
+    $historyFileName = 'epaper_' . $timestamp . '.bmp';
+    $latestFileName = 'latest.bmp'; 
     
     $historyDestination = $uploadDir . $historyFileName;
     $latestDestination = $uploadDir . $latestFileName;
 
-    if (move_uploaded_file($tmpName, $historyDestination)) {
-        // 成功儲存歷史紀錄後，複製一份覆寫給 latest.png
+    $uploadSuccess = false;
+    
+    // 如果傳上來的是 PNG，我們在伺服器端將它轉換成無壓縮的 BMP，避免前端直接上傳 BMP 檔案過大超過 Nginx/PHP 限制
+    if (function_exists('imagecreatefrompng') && function_exists('imagebmp')) {
+        $img = @imagecreatefrompng($tmpName);
+        if ($img !== false) {
+            $uploadSuccess = imagebmp($img, $historyDestination);
+        } else {
+            $uploadSuccess = move_uploaded_file($tmpName, $historyDestination);
+        }
+    } else {
+        $uploadSuccess = move_uploaded_file($tmpName, $historyDestination);
+    }
+
+    if ($uploadSuccess) {
+        // 成功儲存歷史紀錄後，複製一份覆寫給 latest.bmp
         copy($historyDestination, $latestDestination);
         
         // --- 產生縮圖 ---
         $thumbName = 'thumb_epaper_' . $timestamp . '.jpg';
         $thumbDestination = $uploadDir . $thumbName;
         
-        $info = getimagesize($historyDestination);
+        $info = @getimagesize($historyDestination);
         if ($info !== false) {
             // 檢查伺服器是否有安裝 GD 函式庫
             if (function_exists('imagecreatetruecolor')) {
@@ -46,6 +60,10 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                     $srcImage = @imagecreatefromwebp($historyDestination);
                 } elseif ($mime === 'image/gif') {
                     $srcImage = @imagecreatefromgif($historyDestination);
+                } elseif ($mime === 'image/bmp' || $mime === 'image/x-ms-bmp') {
+                    if (function_exists('imagecreatefrombmp')) {
+                        $srcImage = @imagecreatefrombmp($historyDestination);
+                    }
                 }
                 
                 if ($srcImage) {
@@ -67,8 +85,6 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                         // 存成 JPEG，品質設定為 75 (0-100)，能大幅縮減大小
                         imagejpeg($thumbImage, $thumbDestination, 75); 
                         
-                        imagedestroy($srcImage);
-                        imagedestroy($thumbImage);
                     } else {
                         copy($historyDestination, $thumbDestination);
                     }
