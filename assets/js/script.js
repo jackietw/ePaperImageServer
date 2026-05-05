@@ -75,30 +75,30 @@ imageUpload.addEventListener('change', function (e) {
 function loadImage(file) {
     const isHeic = file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic';
 
-    // 處理 HEIC 格式
+    // Handle HEIC Format
     if (isHeic) {
         if (typeof heic2any === 'undefined') {
-            alert("HEIC 轉換模組尚未載入，請確認網路連線後再試。");
+            alert("HEIC converter not loaded. Please check your network connection and try again.");
             return;
         }
 
         const originalText = uploadText.textContent;
-        uploadText.textContent = "正在處理 HEIC 格式轉換，請稍候...";
-        uploadSection.style.pointerEvents = 'none'; // 轉換期間防止重複點擊
+        uploadText.textContent = "Processing HEIC conversion, please wait...";
+        uploadSection.style.pointerEvents = 'none'; // Prevent duplicate clicks during conversion
 
         heic2any({
             blob: file,
             toType: "image/jpeg",
             quality: 0.8
         }).then(conversionResult => {
-            // 恢復 UI 狀態
+            // Restore UI Status
             uploadText.textContent = originalText;
             uploadSection.style.pointerEvents = 'auto';
 
-            // heic2any 在遇到連拍照片時可能會回傳陣列，我們取第一張
+            // heic2any may return an array when encountering burst photos, take the first one
             const blob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
 
-            // 將轉換後的 Blob 給 Cropper.js 讀取
+            // Pass the converted Blob to Cropper.js for reading
             const reader = new FileReader();
             reader.onload = function (e) {
                 imageWorkspace.src = e.target.result;
@@ -110,17 +110,17 @@ function loadImage(file) {
 
         }).catch(e => {
             console.error(e);
-            alert("HEIC 轉換失敗，請確認檔案是否損毀！");
+            alert("HEIC conversion failed. Please check if the file is corrupted!");
             uploadText.textContent = originalText;
             uploadSection.style.pointerEvents = 'auto';
         });
 
-        return; // 中斷後續的常規圖片處理流程
+        return; // Skip subsequent normal image processing
     }
 
-    // 處理常規圖片 (JPEG, PNG, etc.)
+    // Handle normal images (JPEG, PNG, etc.)
     if (!file.type.match('image.*')) {
-        alert("請上傳圖片檔案！");
+        alert("Please upload an image file!");
         return;
     }
 
@@ -148,7 +148,7 @@ function initCropper() {
             currentHeight = (radio.value === 'landscape') ? 480 : 800;
             ratio = currentWidth / currentHeight;
             let maxAvailableHeight = window.innerHeight - 400;
-            let maxW = window.innerWidth - 120; // 預留手機上的 Padding 與 Border 空間
+            let maxW = window.innerWidth - 120; // Reserve Padding and Border space for mobile
 
             // Calculate a scaling factor
             let scale = Math.min(1, maxW / currentWidth, maxAvailableHeight / currentHeight);
@@ -170,10 +170,10 @@ function initCropper() {
     // Wait for CSS DOM layout to apply before initializing Cropper
     setTimeout(() => {
         cropper = new Cropper(imageWorkspace, {
-            viewMode: 3, // 強制圖片填滿容器，不允許留下任何背景白邊
-            aspectRatio: currentWidth / currentHeight, // 強制裁切框比例，讓 Cropper.js 完美接管內部運算
+            viewMode: 3, // Force image to fill container, no white edges allowed
+            aspectRatio: currentWidth / currentHeight, // Force crop box ratio, let Cropper.js handle internal calculations perfectly
             dragMode: 'move',
-            autoCropArea: 1, // 讓裁切框預設撐滿 100% 容器空間
+            autoCropArea: 1, // Let crop box default to fill 100% of container space
             restore: false,
             guides: true,
             center: true,
@@ -263,7 +263,7 @@ restartBtn.addEventListener('click', () => {
 processBtn.addEventListener('click', () => {
     if (!cropper) return;
 
-    // 1. Get Cropped Canvas
+    // Get Cropped Canvas
     const croppedCanvas = cropper.getCroppedCanvas({
         width: currentWidth,
         height: currentHeight,
@@ -272,8 +272,7 @@ processBtn.addEventListener('click', () => {
         imageSmoothingQuality: 'high',
     });
 
-    // 1.1 終極邊緣修復：解決 Cropper.js 因浮點數運算在右側或下方產生 1~2px 的白邊/透明邊界
-    // 我們將它繪製到一個新的 Canvas 上，並四周各放大 2 px，把邊緣的白邊直接推到畫面外！
+    // Draw it onto a new canvas and enlarge it by 2px on all sides to push the white edges out of the screen!
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = currentWidth;
     tempCanvas.height = currentHeight;
@@ -285,24 +284,23 @@ processBtn.addEventListener('click', () => {
 
     let imageData = ctx.getImageData(0, 0, currentWidth, currentHeight);
 
-    // 1.5 攤平透明度 (Flatten Alpha)
-    // 解決裁切邊界產生微小透明像素，導致電子紙將其誤判為黑邊或亂碼的問題
+    // Flatten Alpha
     for (let i = 0; i < imageData.data.length; i += 4) {
         const alpha = imageData.data[i + 3] / 255;
         if (alpha < 1) {
             imageData.data[i] = imageData.data[i] * alpha + 255 * (1 - alpha);     // R
             imageData.data[i + 1] = imageData.data[i + 1] * alpha + 255 * (1 - alpha); // G
             imageData.data[i + 2] = imageData.data[i + 2] * alpha + 255 * (1 - alpha); // B
-            imageData.data[i + 3] = 255; // 強制不透明
+            imageData.data[i + 3] = 255; // Force opaque
         }
     }
 
-    // 2. Adjust Saturation and Contrast (Optimized to single pass)
+    // Adjust Saturation and Contrast (Optimized to single pass)
     const satValue = parseInt(saturationSlider.value); // -100 to 100
     const conValue = parseInt(contrastSlider.value); // -100 to 100
     applyAdjustments(imageData.data, satValue, conValue);
 
-    // 3. Apply Dithering
+    // Apply Dithering
     let ditherAlgo = 'floyd';
     const radioDither = document.getElementsByName('dithering_algo');
     if (radioDither) {
@@ -344,7 +342,7 @@ backBtn.addEventListener('click', () => {
 // Upload to Server
 uploadServerBtn.addEventListener('click', () => {
     uploadServerBtn.disabled = true;
-    uploadServerBtn.textContent = "上傳中...";
+    uploadServerBtn.textContent = "Uploading...";
     uploadStatus.textContent = "";
 
     // Export as PNG first to minimize upload payload size (avoids 1MB server limits)
@@ -367,21 +365,21 @@ uploadServerBtn.addEventListener('click', () => {
             })
             .then(data => {
                 uploadServerBtn.disabled = false;
-                uploadServerBtn.textContent = "儲存";
+                uploadServerBtn.textContent = "Save";
                 if (data.success) {
                     uploadStatus.style.color = "#4ade80";
-                    uploadStatus.textContent = "上傳成功！檔案位置: " + data.path;
+                    uploadStatus.textContent = "Uploading Success!";
                 } else {
                     uploadStatus.style.color = "#ef4444";
-                    uploadStatus.textContent = "上傳失敗: " + data.message;
+                    uploadStatus.textContent = "Uploading Failed: " + data.message;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 uploadServerBtn.disabled = false;
-                uploadServerBtn.textContent = "儲存";
+                uploadServerBtn.textContent = "Save";
                 uploadStatus.style.color = "#ef4444";
-                uploadStatus.textContent = "上傳失敗，請檢查網路連線或伺服器設定。";
+                uploadStatus.textContent = "Uploading Failed, Please Check Network or Server Settings";
             });
     }, 'image/png');
 });
@@ -463,7 +461,7 @@ function applyFloydSteinberg(imageData, width, height) {
             data[index] = newColor[0];
             data[index + 1] = newColor[1];
             data[index + 2] = newColor[2];
-            data[index + 3] = 255; // 確保沒有透明度，避免 e-paper 產生噪點或黑邊
+            data[index + 3] = 255; // Ensure no transparency to avoid noise or black edges on e-paper
 
             const errR = oldR - newColor[0];
             const errG = oldG - newColor[1];

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Paper Image Processor</title>
+    <title>E-Paper Image Tools</title>
     <link rel="stylesheet" href="assets/css/style.css?v=2">
     <!-- Cropper.js CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
@@ -18,11 +18,11 @@
                 <span></span>
                 <span></span>
             </div>
-            <h1>E-Paper Image Processor</h1>
+            <h1>E-Paper Image Tools</h1>
             <p>6-Color Dithering & Resizing</p>
             <nav class="main-nav">
-                <a href="index.html" class="nav-btn active">上傳圖檔</a>
-                <a href="admin.html" class="nav-btn">管理圖檔</a>
+                <a href="index.html" class="nav-btn active">Upload Image</a>
+                <a href="admin.html" class="nav-btn">Manage Image</a>
             </nav>
         </header>
 
@@ -31,7 +31,7 @@
                 <input type="file" id="image-upload" accept="image/*,.heic" hidden>
                 <label for="image-upload" class="upload-label">
                     <div class="upload-icon">📁</div>
-                    <span id="upload-text">點擊或拖曳圖片至此上傳</span>
+                    <span id="upload-text">Upload Image</span>
                 </label>
             </div>
 
@@ -42,12 +42,14 @@
                     </div>
                     <div class="controls">
                         <div class="toolbar">
-                            <button id="rotate-btn" class="icon-btn" title="旋轉90度">↻ 旋轉</button>
-                            <button id="reset-btn" class="icon-btn" title="重設設定">↺ 重設</button>
-                            <button id="restart-btn" class="icon-btn danger-btn" title="重新上傳">✕ 重新上傳</button>
+                            <button id="rotate-btn" class="icon-btn" title="Rotate 90 degrees">↻ Rotate 90
+                                degrees</button>
+                            <button id="reset-btn" class="icon-btn" title="Reset Settings">↺ Reset Settings</button>
+                            <button id="restart-btn" class="icon-btn danger-btn" title="Upload New Image">✕ Upload New
+                                Image</button>
                         </div>
                         <div class="control-group">
-                            <label>輸出尺寸</label>
+                            <label>Output Size</label>
                             <div class="radio-group">
                                 <label><input type="radio" name="ratio" value="landscape" checked> 800 x 480</label>
                                 <label><input type="radio" name="ratio" value="portrait"> 480 x 800</label>
@@ -55,7 +57,7 @@
                         </div>
 
                         <div class="control-group">
-                            <label>抖動演算法 (Dithering)</label>
+                            <label>Dithering</label>
                             <div class="radio-group">
                                 <label><input type="radio" name="dithering_algo" value="floyd" checked>
                                     Floyd-Steinberg</label>
@@ -67,28 +69,28 @@
                         </div>
 
                         <div class="control-group">
-                            <label for="saturation">飽和度 (Saturation): <span id="sat-val">0</span></label>
+                            <label for="saturation">Saturation: <span id="sat-val">0</span></label>
                             <input type="range" id="saturation" min="-100" max="100" value="0">
                         </div>
 
                         <div class="control-group">
-                            <label for="contrast">對比度 (Contrast): <span id="con-val">0</span></label>
+                            <label for="contrast">Contrast: <span id="con-val">0</span></label>
                             <input type="range" id="contrast" min="-100" max="100" value="0">
                         </div>
 
-                        <button id="process-btn" class="primary-btn">套用 6 色抖動處理</button>
+                        <button id="process-btn" class="primary-btn">Apply 6-Color Dithering</button>
                     </div>
                 </div>
             </div>
 
             <div class="result-section hidden" id="result-section">
-                <h2>處理預覽</h2>
+                <h2>Preview</h2>
                 <div class="result-preview">
                     <canvas id="result-canvas"></canvas>
                 </div>
                 <div class="actions">
-                    <button id="back-btn" class="secondary-btn">重新編輯</button>
-                    <button id="upload-server-btn" class="primary-btn">儲存</button>
+                    <button id="back-btn" class="secondary-btn">Back to Edit</button>
+                    <button id="upload-server-btn" class="primary-btn">Save</button>
                 </div>
                 <p id="upload-status"></p>
             </div>

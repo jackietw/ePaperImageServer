@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Paper 圖片管理後台</title>
+    <title>E-Paper Image Management</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/admin.css?v=2">
 </head>
@@ -16,46 +16,45 @@
             <span></span>
             <span></span>
         </div>
-        <h1>圖片管理中心</h1>
-        <p>檢視、預覽及刪除已上傳至電子紙的圖片</p>
+        <h1>E-Paper Image Management</h1>
+        <p>Browse, preview, and delete uploaded images</p>
         <nav class="main-nav">
-            <a href="index.html" class="nav-btn">上傳圖檔</a>
-            <a href="admin.html" class="nav-btn active">管理圖檔</a>
+            <a href="index.html" class="nav-btn">Upload Image</a>
+            <a href="admin.html" class="nav-btn active">Manage Image</a>
         </nav>
         <div id="latest-status-container" class="latest-status-container">
-            <!-- 狀態將由 JS 動態生成 -->
+            <!-- Status will be generated dynamically by JS -->
         </div>
     </header>
 
     <main class="gallery-container">
-        <!-- 圖片縮圖將由 JS 動態生成 -->
+        <!-- Image thumbnails will be generated dynamically by JS -->
         <div id="gallery-grid" class="gallery-grid">
-            <div class="loading-text">載入中...</div>
+            <div class="loading-text">Loading...</div>
         </div>
     </main>
 
-    <!-- Lightbox 預覽視窗 -->
+    <!-- Lightbox preview window -->
     <div id="lightbox" class="lightbox">
         <div class="lightbox-content">
             <span class="close-btn" id="lightbox-close">&times;</span>
-            <img id="lightbox-img" src="" alt="預覽圖片">
+            <img id="lightbox-img" src="" alt="Preview">
         </div>
     </div>
 
-    <!-- 自訂確認刪除彈窗 -->
+    <!-- Custom confirm delete dialog -->
     <div id="confirm-modal" class="confirm-modal">
         <div class="confirm-box">
-            <h3>確認刪除</h3>
-            <p>你確定要刪除這張圖片嗎？此操作無法復原。</p>
+            <h3>Confirm Delete</h3>
+            <p>Are you sure you want to delete this image? This action cannot be undone.</p>
             <div class="confirm-actions">
-                <button id="cancel-delete" class="btn btn-secondary">取消</button>
-                <button id="confirm-delete" class="btn btn-danger">確認刪除</button>
+                <button id="cancel-delete" class="btn btn-secondary">Cancel</button>
+                <button id="confirm-delete" class="btn btn-danger">Confirm Delete</button>
             </div>
         </div>
     </div>
     <!-- footer -->
-    <footer
-        style="position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; padding: 10px;">
+    <footer style="position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; padding: 10px;">
         <p>@2026 E-Paper Upload Website by Jackie | Version 1.1</p>
     </footer>
     <script src="assets/js/admin.js"></script>

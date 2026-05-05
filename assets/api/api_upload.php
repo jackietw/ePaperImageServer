@@ -1,54 +1,60 @@
 <?php
 header('Content-Type: application/json');
 
-// 允許跨網域請求 (若前端與後端在不同網域時使用)
+// Allow cross-domain requests (if frontend and backend are on different domains)
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
 
 $uploadDir = __DIR__ . '/../../processed/';
 
-// 若資料夾不存在，則建立它
+// If the folder does not exist, create it
 if (!file_exists($uploadDir)) {
     mkdir($uploadDir, 0777, true);
 }
 
-// 檢查是否有檔案上傳
+// Check if file is uploaded
 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     $tmpName = $_FILES['image']['tmp_name'];
-    
-    // 產生唯一檔名，保留歷史紀錄
+
+    // Generate unique filename, keep history
     $timestamp = time();
-    $historyFileName = 'epaper_' . $timestamp . '.bmp';
-    $latestFileName = 'latest.bmp'; 
-    
+    $historyFileName = 'epaper_' . $timestamp . '.png';
+    $latestFileName = 'latest.png';
+
     $historyDestination = $uploadDir . $historyFileName;
     $latestDestination = $uploadDir . $latestFileName;
+    $pendingDestination = $uploadDir . 'pending.bmp';
 
     $uploadSuccess = false;
-    
-    // 如果傳上來的是 PNG，我們在伺服器端將它轉換成無壓縮的 BMP，避免前端直接上傳 BMP 檔案過大超過 Nginx/PHP 限制
-    if (function_exists('imagecreatefrompng') && function_exists('imagebmp')) {
-        $img = @imagecreatefrompng($tmpName);
-        if ($img !== false) {
-            $uploadSuccess = imagebmp($img, $historyDestination);
-        } else {
-            $uploadSuccess = move_uploaded_file($tmpName, $historyDestination);
-        }
-    } else {
-        $uploadSuccess = move_uploaded_file($tmpName, $historyDestination);
+
+    // Frontend uploads PNG directly to save space
+    if (move_uploaded_file($tmpName, $historyDestination)) {
+        $uploadSuccess = true;
     }
 
     if ($uploadSuccess) {
-        // 成功儲存歷史紀錄後，複製一份覆寫給 latest.bmp
+        // Copy to latest.png for web preview
         copy($historyDestination, $latestDestination);
-        
-        // --- 產生縮圖 ---
+
+        // Generate uncompressed pending.bmp for device to fetch
+        if (function_exists('imagecreatefrompng') && function_exists('imagebmp')) {
+            $img = @imagecreatefrompng($historyDestination);
+            if ($img !== false) {
+                imagebmp($img, $pendingDestination);
+            } else {
+                copy($historyDestination, $pendingDestination);
+            }
+        } else {
+            copy($historyDestination, $pendingDestination);
+        }
+
+        // --- Generate thumbnail ---
         $thumbName = 'thumb_epaper_' . $timestamp . '.jpg';
         $thumbDestination = $uploadDir . $thumbName;
-        
+
         $info = @getimagesize($historyDestination);
         if ($info !== false) {
-            // 檢查伺服器是否有安裝 GD 函式庫
+            // Check if the server has GD library installed
             if (function_exists('imagecreatetruecolor')) {
                 $mime = $info['mime'];
                 $srcImage = null;
@@ -65,26 +71,26 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                         $srcImage = @imagecreatefrombmp($historyDestination);
                     }
                 }
-                
+
                 if ($srcImage) {
                     $origWidth = imagesx($srcImage);
                     $origHeight = imagesy($srcImage);
-                    
+
                     if ($origWidth > 0) {
-                        // 設定縮圖寬高 (最大寬度400)
+                        // Set thumbnail width and height (maximum width 400)
                         $thumbWidth = 400;
                         $thumbHeight = floor($origHeight * ($thumbWidth / $origWidth));
-                        
+
                         $thumbImage = imagecreatetruecolor($thumbWidth, $thumbHeight);
-                        
-                        // JPEG 不支援透明背景，所以先把背景填滿白色
+
+                        // JPEG does not support transparency, so fill the background with white
                         $white = imagecolorallocate($thumbImage, 255, 255, 255);
                         imagefill($thumbImage, 0, 0, $white);
-                        
+
                         imagecopyresampled($thumbImage, $srcImage, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $origWidth, $origHeight);
-                        // 存成 JPEG，品質設定為 75 (0-100)，能大幅縮減大小
-                        imagejpeg($thumbImage, $thumbDestination, 75); 
-                        
+                        // Save as JPEG, quality set to 75 (0-100) to significantly reduce size
+                        imagejpeg($thumbImage, $thumbDestination, 75);
+
                     } else {
                         copy($historyDestination, $thumbDestination);
                     }
@@ -92,34 +98,34 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                     copy($historyDestination, $thumbDestination);
                 }
             } else {
-                // 如果沒有 GD 函式庫，直接複製原圖當作縮圖以免報錯
+                // If no GD library is installed, copy the original image directly as a thumbnail to avoid errors
                 copy($historyDestination, $thumbDestination);
             }
         }
-        // --- 縮圖產生結束 ---
-        // 檢查權限是否為 0777，若是則加上警告訊息
+        // --- Thumbnail generation ends ---
+        // Check if permission is 0777, if so, add a warning message
         $warningMsg = '';
         if (substr(sprintf('%o', fileperms($uploadDir)), -4) === '0777') {
-            $warningMsg = " (⚠️ 警告：上傳資料夾權限為 0777，有嚴重的安全風險，建議改為 0755)";
+            $warningMsg = " (⚠️ Warning: Upload folder permission is 0777, severe security risk, recommend changing to 0755)";
         }
-        
-        // 取得相對路徑回傳給前端 (這裡回傳最新複製的路徑以保持相容性，或回傳歷史路徑皆可)
+
+        // Get relative path to return to frontend (return latest copied path for compatibility, or return history path is acceptable)
         $path = 'processed/' . $latestFileName;
         echo json_encode([
             'success' => true,
-            'message' => '檔案上傳成功' . $warningMsg,
+            'message' => 'File uploaded successfully' . $warningMsg,
             'path' => $path
         ]);
     } else {
         echo json_encode([
             'success' => false,
-            'message' => '檔案移動失敗，請檢查資料夾權限。'
+            'message' => 'Failed to move file, please check folder permissions.'
         ]);
     }
 } else {
     echo json_encode([
         'success' => false,
-        'message' => '未收到檔案或上傳過程發生錯誤。',
+        'message' => 'No file received or error occurred during upload.',
         'error_code' => isset($_FILES['image']) ? $_FILES['image']['error'] : 'No File'
     ]);
 }

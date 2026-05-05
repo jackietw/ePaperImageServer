@@ -3,13 +3,13 @@ header('Content-Type: application/json');
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET");
 
-$latestPath = __DIR__ . '/../../processed/latest.bmp';
+$pendingPath = __DIR__ . '/../../processed/pending.bmp';
 
-if (file_exists($latestPath) && is_file($latestPath)) {
+if (file_exists($pendingPath) && is_file($pendingPath)) {
     echo json_encode([
         'exists' => true,
-        'timestamp' => filemtime($latestPath),
-        'size' => filesize($latestPath)
+        'timestamp' => filemtime($pendingPath),
+        'size' => filesize($pendingPath)
     ]);
 } else {
     echo json_encode([

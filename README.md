@@ -6,7 +6,8 @@ A complete web-based solution for processing, managing, and preparing images for
 
 - **Upload & Crop**: Supports standard images and HEIC format. Precise cropping via Cropper.js ensuring no sub-pixel artifacts.
 - **Image Adjustments**: Real-time previews of saturation and contrast adjustments.
-- **6-Color Dithering**: Highly optimized client-side Floyd-Steinberg dithering using the standard E-Paper 6-color palette (Black, White, Green, Blue, Red, Yellow).
+- **6-Color Dithering**: Highly optimized client-side dithering using the standard E-Paper 6-color palette (Black, White, Green, Blue, Red, Yellow).
+  - Support more dithering algorithem and optimize the performance, such as **Floyd-Steinberg**, **Atkinson**, **Joel Yliluoma**, **Stucki**, and **Blue Noise Dithering**.
 - **Admin Dashboard**: A management interface (`admin.html`) to browse uploaded images, preview them, delete them, and set a specific image as the current "latest" for the e-paper to fetch.
 - **Server-Side API**: PHP backend to securely upload and manage the state of your E-Paper display.
 
@@ -23,11 +24,13 @@ A complete web-based solution for processing, managing, and preparing images for
 
 ### Backend (PHP)
 
-- `upload.php`: Handles image uploading and saving the dithered results.
+- `api_upload.php`: Handles image uploading and saving the dithered results.
 - `api_list_images.php`: Retrieves a list of processed images and their thumbnails.
 - `api_delete_image.php`: Deletes a specific image and its thumbnail.
 - `api_set_latest.php`: Sets an uploaded image as the current `latest.png` (the image your e-paper device will download).
 - `api_check_latest.php`: Checks if a `latest.png` file currently exists.
+- `api_check_pending.php`: Checks if a `pending.bmp` file currently exists for the device to download.
+- `api_consume_pending.php`: Deletes the `pending.bmp` file after the device has downloaded it, preventing repeated downloads and saving battery.
 
 ## System Requirements
 
@@ -47,9 +50,19 @@ A complete web-based solution for processing, managing, and preparing images for
 
 1. Start your local or remote PHP server in this directory.
 2. Navigate to `index.html` to upload and process a new image.
-3. Select your output dimensions (Landscape vs. Portrait), adjust image filters, and click **套用 6 色抖動處理**.
-4. Click **儲存** to save the processed image to the server.
-5. Navigate to `admin.html` (via the "管理圖檔" navigation link) to view your gallery, delete older files, and select which image should be displayed on the E-Paper device.
+3. Select your output dimensions (Landscape vs. Portrait), adjust image filters, select a Dithering algorithm, and click **Apply 6-Color Dithering**.
+4. Click **Save** to save the processed image to the server.
+5. Navigate to `admin.html` (via the "Manage Image" navigation link) to view your gallery, delete older files, and select which image should be displayed on the E-Paper device.
+
+## Device (MCU/ESP32) Workflow for Battery Saving
+
+To optimize battery life, the E-Paper device should follow this sequence:
+
+1. **Wake Up & Check**: Call `assets/api/api_check_pending.php`. If it returns `{"exists": false}`, the device should go back to sleep immediately.
+2. **Download Image**: If `exists` is true, download the `processed/pending.bmp` file and render it on the E-Paper display.
+3. **Consume Image**: After rendering, call `assets/api/api_consume_pending.php`. This will delete `pending.bmp` from the server.
+4. **Sleep**: Go back to Deep Sleep.
+By deleting the pending image, the device avoids downloading the same image repeatedly. Meanwhile, the `latest.png` remains untouched so users can still preview the current display from the web dashboard.
 
 ## Technical Details & Optimizations
 

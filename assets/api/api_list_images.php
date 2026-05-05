@@ -7,16 +7,16 @@ $uploadDir = __DIR__ . '/../../processed/';
 $images = [];
 
 if (is_dir($uploadDir)) {
-    // 取得所有檔案
+    // Get all files
     $files = scandir($uploadDir);
     foreach ($files as $file) {
-        // 過濾掉 ., .., latest.png 以及縮圖 (以 thumb_ 開頭)
-        if ($file !== '.' && $file !== '..' && $file !== 'latest.bmp' && strpos($file, 'thumb_') !== 0) {
+        // Filter out ., .., latest.bmp, latest.png, pending.bmp, and thumbnails (starting with thumb_)
+        if ($file !== '.' && $file !== '..' && $file !== 'latest.bmp' && $file !== 'latest.png' && $file !== 'pending.bmp' && strpos($file, 'thumb_') !== 0) {
             $filePath = $uploadDir . $file;
-            // 簡易檢查副檔名
+            // Simple check for file extension
             if (is_file($filePath) && preg_match('/\.(jpg|jpeg|png|gif|webp|bmp)$/i', $file)) {
 
-                // 檢查對應的縮圖是否存在 (現在縮圖強制存成 .jpg)
+                // Check if the corresponding thumbnail exists (thumbnails are now forced to be saved as .jpg)
                 $thumbName = 'thumb_' . preg_replace('/\.(png|jpe?g|gif|webp|bmp)$/i', '.jpg', $file);
                 $thumbPathFull = $uploadDir . $thumbName;
                 $thumbPath = file_exists($thumbPathFull) ? 'processed/' . $thumbName : 'processed/' . $file;
@@ -33,7 +33,7 @@ if (is_dir($uploadDir)) {
     }
 }
 
-// 依照修改時間排序，最新的在最前面
+// Sort by modification time, with the latest first
 usort($images, function ($a, $b) {
     return $b['time'] - $a['time'];
 });
