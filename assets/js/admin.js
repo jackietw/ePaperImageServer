@@ -25,12 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let fileToDelete = null;
 
-    // 載入圖片清單
+    // Load Images
     function loadImages() {
         fetch('assets/api/api_list_images.php')
             .then(response => response.json())
             .then(data => {
-                galleryGrid.innerHTML = ''; // 清空載入中字樣
+                galleryGrid.innerHTML = ''; // Clear loading text
 
                 if (data.success && data.data.length > 0) {
                     data.data.forEach(image => {
@@ -47,10 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    // 格式化日期
+    // Format Date
     function formatDate(timestamp) {
         const date = new Date(timestamp * 1000);
-        return date.toLocaleString('zh-TW', {
+        return date.toLocaleString('en-US', {
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 設為預設圖片 (latest.bmp)
+    // Set as Latest Image (latest.bmp)
     function setAsLatest(filename) {
         fetch('assets/api/api_set_latest.php', {
             method: 'POST',

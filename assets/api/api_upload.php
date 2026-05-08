@@ -100,6 +100,7 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             } else {
                 // If no GD library is installed, copy the original image directly as a thumbnail to avoid errors
                 copy($historyDestination, $thumbDestination);
+                $warningMsg .= " (⚠️ Warning: Server does not have GD library installed, cannot generate thumbnails and convert formats, using original files directly)";
             }
         }
         // --- Thumbnail generation ends ---
