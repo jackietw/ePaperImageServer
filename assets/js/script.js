@@ -8,7 +8,7 @@ const imageUpload = document.getElementById('image-upload');
 const uploadText = document.getElementById('upload-text');
 const editorSection = document.getElementById('editor-section');
 const imageWorkspace = document.getElementById('image-workspace');
-const radioRatios = document.getElementsByName('ratio');
+const selectRatio = document.getElementById('ratio_select');
 const saturationSlider = document.getElementById('saturation');
 const satValDisplay = document.getElementById('sat-val');
 const contrastSlider = document.getElementById('contrast');
@@ -140,32 +140,30 @@ function initCropper() {
         cropper = null;
     }
 
-    // Determine aspect ratio from radio
+    // Determine aspect ratio from select
     let ratio = currentWidth / currentHeight;
-    radioRatios.forEach(radio => {
-        if (radio.checked) {
-            currentWidth = (radio.value === 'landscape') ? 800 : 480;
-            currentHeight = (radio.value === 'landscape') ? 480 : 800;
-            ratio = currentWidth / currentHeight;
-            let maxAvailableHeight = window.innerHeight - 400;
-            let maxW = window.innerWidth - 120; // Reserve Padding and Border space for mobile
+    if (selectRatio) {
+        currentWidth = (selectRatio.value === 'landscape') ? 800 : 480;
+        currentHeight = (selectRatio.value === 'landscape') ? 480 : 800;
+        ratio = currentWidth / currentHeight;
+        let maxAvailableHeight = window.innerHeight - 400;
+        let maxW = window.innerWidth - 120; // Reserve Padding and Border space for mobile
 
-            // Calculate a scaling factor
-            let scale = Math.min(1, maxW / currentWidth, maxAvailableHeight / currentHeight);
+        // Calculate a scaling factor
+        let scale = Math.min(1, maxW / currentWidth, maxAvailableHeight / currentHeight);
 
-            // Magic formula to guarantee perfect integers matching 5:3 or 3:5 ratio
-            // currentWidth/160 and currentHeight/160 will always be 5 and 3
-            let K = Math.floor(160 * scale);
+        // Magic formula to guarantee perfect integers matching 5:3 or 3:5 ratio
+        // currentWidth/160 and currentHeight/160 will always be 5 and 3
+        let K = Math.floor(160 * scale);
 
-            let finalW = (radio.value === 'landscape') ? 5 * K : 3 * K;
-            let finalH = (radio.value === 'landscape') ? 3 * K : 5 * K;
+        let finalW = (selectRatio.value === 'landscape') ? 5 * K : 3 * K;
+        let finalH = (selectRatio.value === 'landscape') ? 3 * K : 5 * K;
 
-            canvasContainer.style.maxWidth = "none";
-            canvasContainer.style.width = finalW + "px";
-            canvasContainer.style.height = finalH + "px";
-            canvasContainer.style.aspectRatio = "auto";
-        }
-    });
+        canvasContainer.style.maxWidth = "none";
+        canvasContainer.style.width = finalW + "px";
+        canvasContainer.style.height = finalH + "px";
+        canvasContainer.style.aspectRatio = "auto";
+    }
 
     // Wait for CSS DOM layout to apply before initializing Cropper
     setTimeout(() => {
@@ -185,10 +183,10 @@ function initCropper() {
     }, 50);
 }
 
-// Update aspect ratio when radio changes
-radioRatios.forEach(radio => {
-    radio.addEventListener('change', initCropper);
-});
+// Update aspect ratio when select changes
+if (selectRatio) {
+    selectRatio.addEventListener('change', initCropper);
+}
 
 // Real-time Preview via CSS Filters
 function updatePreviewFilters() {
@@ -302,11 +300,9 @@ processBtn.addEventListener('click', () => {
 
     // Apply Dithering
     let ditherAlgo = 'floyd';
-    const radioDither = document.getElementsByName('dithering_algo');
-    if (radioDither) {
-        radioDither.forEach(radio => {
-            if (radio.checked) ditherAlgo = radio.value;
-        });
+    const selectDither = document.getElementById('dithering_algo_select');
+    if (selectDither) {
+        ditherAlgo = selectDither.value;
     }
 
     if (ditherAlgo === 'stucki') {

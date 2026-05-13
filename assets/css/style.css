@@ -17,16 +17,18 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: var(--bg-color);
-    background-image: 
-        radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-        radial-gradient(at 50% 0%, hsla(225,39%,30%,0.3) 0, transparent 50%), 
-        radial-gradient(at 100% 0%, hsla(339,49%,30%,0.3) 0, transparent 50%);
+    background-image:
+        radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+        radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 0.3) 0, transparent 50%),
+        radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 0.3) 0, transparent 50%);
     color: var(--text-primary);
     min-height: 100vh;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    padding: 20px;
+    justify-content: flex-start;
+    padding: 20px 20px 60px 20px;
+    /* Add padding at bottom to avoid footer overlap, match top padding to admin */
 }
 
 .hidden {
@@ -126,7 +128,8 @@ header p {
     cursor: pointer;
 }
 
-.upload-section:hover, .upload-section.dragover {
+.upload-section:hover,
+.upload-section.dragover {
     border-color: var(--primary-color);
     background: rgba(59, 130, 246, 0.05);
 }
@@ -152,17 +155,22 @@ header p {
 
 .canvas-container {
     background: #000;
-    border-radius: 4px; /* Slight screen curvature */
+    border-radius: 4px;
+    /* Slight screen curvature */
     overflow: hidden;
     position: relative;
     margin: 0 auto;
-    
+
     /* Picture Frame Effect */
-    border: 12px solid #1a1c23; /* Dark matte frame */
-    box-sizing: content-box; /* Ensures JS calculations apply only to the screen area */
-    box-shadow: 
-        inset 0 0 0 2px #000, /* inner shadow */
-        0 8px 30px rgba(0, 0, 0, 0.6); /* outer drop shadow */
+    border: 12px solid #1a1c23;
+    /* Dark matte frame */
+    box-sizing: content-box;
+    /* Ensures JS calculations apply only to the screen area */
+    box-shadow:
+        inset 0 0 0 2px #000,
+        /* inner shadow */
+        0 8px 30px rgba(0, 0, 0, 0.6);
+    /* outer drop shadow */
 }
 
 .canvas-container img {
@@ -184,7 +192,9 @@ header p {
 .cropper-view-box {
     outline: none !important;
 }
-.cropper-line, .cropper-point {
+
+.cropper-line,
+.cropper-point {
     display: none !important;
 }
 
@@ -208,22 +218,39 @@ header p {
     color: var(--text-secondary);
 }
 
-.radio-group {
-    display: flex;
-    gap: 20px;
+.styled-select {
+    width: 100%;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.3);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.radio-group label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
+.styled-select:hover,
+.styled-select:focus {
+    border-color: var(--primary-color);
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.styled-select option {
+    background-color: #1e293b;
     color: var(--text-primary);
 }
 
 input[type="range"] {
     width: 100%;
     accent-color: var(--primary-color);
+    height: 30px;
+    /* Increase touch target area */
+    cursor: pointer;
+    touch-action: pan-y;
+    /* Prevent horizontal page swipe when dragging */
 }
 
 /* Buttons */
@@ -319,31 +346,40 @@ button {
 #upload-status {
     margin-top: 15px;
     font-size: 0.9rem;
-    color: #4ade80; /* Green for success */
+    color: #4ade80;
+    /* Green for success */
 }
 
 /* Mobile Responsiveness */
 @media (max-width: 600px) {
+
+    html,
     body {
-        padding: 10px;
+        overflow-x: hidden;
+        max-width: 100vw;
     }
-    
+
+    body {
+        padding: 10px 10px 60px 10px;
+    }
+
     .glass-container {
         padding: 20px 15px;
     }
-    
+
     header h1 {
         font-size: 1.6rem;
     }
-    
+
     .canvas-container {
-        border-width: 6px; /* Reduce border to save space on mobile */
+        border-width: 6px;
+        /* Reduce border to save space on mobile */
     }
-    
+
     .hamburger-menu {
         display: flex;
     }
-    
+
     .main-nav {
         position: absolute;
         top: 45px;
@@ -355,27 +391,26 @@ button {
         padding: 15px;
         gap: 15px;
         z-index: 99;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
         backdrop-filter: blur(20px);
         opacity: 0;
         visibility: hidden;
         transform: translateY(-10px);
         transition: all 0.3s ease;
     }
-    
+
     .main-nav.show {
         opacity: 1;
         visibility: visible;
         transform: translateY(0);
     }
-    
+
     .nav-btn {
         padding: 8px 16px;
         font-size: 0.85rem;
     }
-    
+
     .controls {
         padding: 15px;
     }
 }
-

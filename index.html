@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Paper Image Tools</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=2">
+    <link rel="stylesheet" href="assets/css/style.css?v=3">
     <!-- Cropper.js CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
 </head>
@@ -49,23 +49,22 @@
                                 Image</button>
                         </div>
                         <div class="control-group">
-                            <label>Output Size</label>
-                            <div class="radio-group">
-                                <label><input type="radio" name="ratio" value="landscape" checked> 800 x 480</label>
-                                <label><input type="radio" name="ratio" value="portrait"> 480 x 800</label>
-                            </div>
+                            <label for="ratio_select">Output Size</label>
+                            <select id="ratio_select" name="ratio" class="styled-select">
+                                <option value="landscape" selected>800 x 480</option>
+                                <option value="portrait">480 x 800</option>
+                            </select>
                         </div>
 
                         <div class="control-group">
-                            <label>Dithering</label>
-                            <div class="radio-group">
-                                <label><input type="radio" name="dithering_algo" value="floyd" checked>
-                                    Floyd-Steinberg</label>
-                                <label><input type="radio" name="dithering_algo" value="stucki"> Stucki</label>
-                                <label><input type="radio" name="dithering_algo" value="atkinson"> Atkinson</label>
-                                <label><input type="radio" name="dithering_algo" value="yliluoma"> Joel Yliluoma</label>
-                                <label><input type="radio" name="dithering_algo" value="bluenoise"> Blue Noise</label>
-                            </div>
+                            <label for="dithering_algo_select">Dithering</label>
+                            <select id="dithering_algo_select" name="dithering_algo" class="styled-select">
+                                <option value="floyd" selected>Floyd-Steinberg</option>
+                                <option value="stucki">Stucki</option>
+                                <option value="atkinson">Atkinson</option>
+                                <option value="yliluoma">Joel Yliluoma</option>
+                                <option value="bluenoise">Blue Noise</option>
+                            </select>
                         </div>
 
                         <div class="control-group">

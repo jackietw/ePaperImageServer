@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Set as Latest Image (latest.bmp)
+    // Set as Latest Image (latest.png)
     function setAsLatest(filename) {
         fetch('assets/api/api_set_latest.php', {
             method: 'POST',
