@@ -346,7 +346,7 @@ uploadServerBtn.addEventListener('click', () => {
         const formData = new FormData();
         formData.append('image', blob, 'epaper_image.png');
 
-        fetch('assets/api/api_upload.php', {
+        fetch('/api/upload', {
             method: 'POST',
             body: formData
         })

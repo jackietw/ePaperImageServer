@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load Images
     function loadImages() {
-        fetch('assets/api/api_list_images.php')
+        fetch('/api/list_images')
             .then(response => response.json())
             .then(data => {
                 galleryGrid.innerHTML = ''; // Clear loading text
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Set as Latest Image (latest.png)
     function setAsLatest(filename) {
-        fetch('assets/api/api_set_latest.php', {
+        fetch('/api/set_latest', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmDeleteBtn.addEventListener('click', () => {
         if (!fileToDelete) return;
 
-        fetch('assets/api/api_delete_image.php', {
+        fetch('/api/delete_image', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Check latest display image status
     function checkLatestStatus() {
-        fetch('assets/api/api_check_latest.php')
+        fetch('/api/check_latest')
             .then(res => res.json())
             .then(data => {
                 if (data.exists) {
