@@ -47,6 +47,94 @@ let cropper = null;
 let currentWidth = 800;
 let currentHeight = 480;
 
+// Cookie Helpers
+function setCookie(name, value, days) {
+    let expires = "";
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+}
+
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+// Math Utility: Greatest Common Divisor
+function gcd(a, b) {
+    return b ? gcd(b, a % b) : a;
+}
+
+// Automatically detect uploaded image orientation and match current resolution tier
+function autoDetectOrientation(w, h) {
+    if (!selectRatio) return;
+    const isLandscapeImage = w > h;
+    const currentVal = selectRatio.value;
+
+    let targetVal = currentVal;
+
+    // Check current size tier: large tier (1600x1200 or 1200x1600) vs default tier (800x480 or 480x800)
+    const isLargeTier = (currentVal === '1600x1200' || currentVal === '1200x1600');
+
+    if (isLandscapeImage) {
+        targetVal = isLargeTier ? '1600x1200' : '800x480';
+    } else {
+        // Portrait or Square defaults to Portrait orientation
+        targetVal = isLargeTier ? '1200x1600' : '480x800';
+    }
+
+    if (selectRatio.value !== targetVal) {
+        selectRatio.value = targetVal;
+        setCookie('epaper_ratio', targetVal, 365);
+    }
+}
+
+// Load saved settings from cookies
+const savedRatio = getCookie('epaper_ratio');
+const savedAlgo = getCookie('epaper_algo');
+
+if (savedRatio && selectRatio) {
+    selectRatio.value = savedRatio;
+}
+const selectDither = document.getElementById('dithering_algo_select');
+if (savedAlgo && selectDither) {
+    selectDither.value = savedAlgo;
+}
+
+// Parse initial resolution values based on loaded selectRatio value
+if (selectRatio) {
+    const val = selectRatio.value;
+    if (val === 'landscape') {
+        currentWidth = 800;
+        currentHeight = 480;
+    } else if (val === 'portrait') {
+        currentWidth = 480;
+        currentHeight = 800;
+    } else {
+        const parts = val.split('x');
+        if (parts.length === 2) {
+            currentWidth = parseInt(parts[0], 10);
+            currentHeight = parseInt(parts[1], 10);
+        }
+    }
+}
+
+// Save algorithm to cookie when changed
+if (selectDither) {
+    selectDither.addEventListener('change', () => {
+        setCookie('epaper_algo', selectDither.value, 365);
+    });
+}
+
 // Handle Drag and Drop
 uploadSection.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -101,10 +189,15 @@ function loadImage(file) {
             // Pass the converted Blob to Cropper.js for reading
             const reader = new FileReader();
             reader.onload = function (e) {
-                imageWorkspace.src = e.target.result;
-                uploadSection.classList.add('hidden');
-                editorSection.classList.remove('hidden');
-                initCropper();
+                const imgObj = new Image();
+                imgObj.onload = function () {
+                    autoDetectOrientation(imgObj.naturalWidth, imgObj.naturalHeight);
+                    imageWorkspace.src = e.target.result;
+                    uploadSection.classList.add('hidden');
+                    editorSection.classList.remove('hidden');
+                    initCropper();
+                };
+                imgObj.src = e.target.result;
             }
             reader.readAsDataURL(blob);
 
@@ -126,10 +219,15 @@ function loadImage(file) {
 
     const reader = new FileReader();
     reader.onload = function (e) {
-        imageWorkspace.src = e.target.result;
-        uploadSection.classList.add('hidden');
-        editorSection.classList.remove('hidden');
-        initCropper();
+        const imgObj = new Image();
+        imgObj.onload = function () {
+            autoDetectOrientation(imgObj.naturalWidth, imgObj.naturalHeight);
+            imageWorkspace.src = e.target.result;
+            uploadSection.classList.add('hidden');
+            editorSection.classList.remove('hidden');
+            initCropper();
+        };
+        imgObj.src = e.target.result;
     }
     reader.readAsDataURL(file);
 }
@@ -141,23 +239,51 @@ function initCropper() {
     }
 
     // Determine aspect ratio from select
-    let ratio = currentWidth / currentHeight;
     if (selectRatio) {
-        currentWidth = (selectRatio.value === 'landscape') ? 800 : 480;
-        currentHeight = (selectRatio.value === 'landscape') ? 480 : 800;
-        ratio = currentWidth / currentHeight;
-        let maxAvailableHeight = window.innerHeight - 400;
+        const val = selectRatio.value;
+        if (val === 'landscape') {
+            currentWidth = 800;
+            currentHeight = 480;
+        } else if (val === 'portrait') {
+            currentWidth = 480;
+            currentHeight = 800;
+        } else {
+            const parts = val.split('x');
+            if (parts.length === 2) {
+                currentWidth = parseInt(parts[0], 10);
+                currentHeight = parseInt(parts[1], 10);
+            }
+        }
+
+        let maxAvailableHeight = window.innerHeight - 480; // Subtract space for header, toolbar, controls, padding, and footer
         let maxW = window.innerWidth - 120; // Reserve Padding and Border space for mobile
+
+        // Restrict maximum width to the inner width of the glass container to prevent overflowing on desktop
+        const glassContainer = document.querySelector('.glass-container');
+        if (glassContainer) {
+            const style = window.getComputedStyle(glassContainer);
+            const paddingX = parseFloat(style.paddingLeft || 0) + parseFloat(style.paddingRight || 0);
+            const containerInnerWidth = glassContainer.clientWidth - paddingX;
+            if (containerInnerWidth > 0) {
+                // Subtract 24px for the 12px border on each side of the canvas-container (due to content-box)
+                maxW = Math.min(maxW, containerInnerWidth - 24);
+            }
+        }
+
+        // Ensure max height is at least 200px to avoid collapsing on very short viewports
+        maxAvailableHeight = Math.max(200, maxAvailableHeight);
 
         // Calculate a scaling factor
         let scale = Math.min(1, maxW / currentWidth, maxAvailableHeight / currentHeight);
 
-        // Magic formula to guarantee perfect integers matching 5:3 or 3:5 ratio
-        // currentWidth/160 and currentHeight/160 will always be 5 and 3
-        let K = Math.floor(160 * scale);
+        // Dynamic formula to guarantee perfect integers matching any resolution ratio using GCD
+        let g = gcd(currentWidth, currentHeight);
+        let wRatio = currentWidth / g;
+        let hRatio = currentHeight / g;
+        let K = Math.floor(g * scale);
 
-        let finalW = (selectRatio.value === 'landscape') ? 5 * K : 3 * K;
-        let finalH = (selectRatio.value === 'landscape') ? 3 * K : 5 * K;
+        let finalW = wRatio * K;
+        let finalH = hRatio * K;
 
         canvasContainer.style.maxWidth = "none";
         canvasContainer.style.width = finalW + "px";
@@ -183,9 +309,12 @@ function initCropper() {
     }, 50);
 }
 
-// Update aspect ratio when select changes
+// Update aspect ratio and save to cookie when select changes
 if (selectRatio) {
-    selectRatio.addEventListener('change', initCropper);
+    selectRatio.addEventListener('change', () => {
+        setCookie('epaper_ratio', selectRatio.value, 365);
+        initCropper();
+    });
 }
 
 // Real-time Preview via CSS Filters
