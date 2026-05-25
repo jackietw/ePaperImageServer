@@ -5,9 +5,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Paper Image Tools</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=3">
+    <link rel="stylesheet" href="assets/css/style.css?v=4">
     <!-- Cropper.js CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <style>
+        /* Mobile layout fixes to completely bypass aggressive browser caching */
+        @media (max-width: 600px) {
+            header {
+                padding: 0 35px !important;
+                position: relative !important;
+            }
+
+            header h1 {
+                font-size: 1.35rem !important;
+                padding: 0 35px !important;
+                box-sizing: border-box !important;
+                line-height: 1.25 !important;
+            }
+
+            .hamburger-menu {
+                display: flex !important;
+                left: 5px !important;
+                top: 6px !important;
+            }
+
+            .main-nav {
+                left: 5px !important;
+            }
+
+            footer {
+                position: relative !important;
+                margin-top: 30px !important;
+                padding: 10px 0 !important;
+                background: transparent !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -51,8 +84,10 @@
                         <div class="control-group">
                             <label for="ratio_select">Output Size</label>
                             <select id="ratio_select" name="ratio" class="styled-select">
-                                <option value="landscape" selected>800 x 480</option>
-                                <option value="portrait">480 x 800</option>
+                                <option value="800x480" selected>800 x 480 (Landscape)</option>
+                                <option value="480x800">480 x 800 (Portrait)</option>
+                                <option value="1600x1200">1600 x 1200 (Landscape)</option>
+                                <option value="1200x1600">1200 x 1600 (Portrait)</option>
                             </select>
                         </div>
 
@@ -103,7 +138,7 @@
     <script src="assets/js/script.js"></script>
     <!-- footer -->
     <footer style="position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; padding: 10px;">
-        <p>@2026 E-Paper Upload Website by Jackie | Version 1.1</p>
+        <p>@2026 E-Paper Upload Website by Jackie | Version 1.2</p>
     </footer>
 </body>
 
