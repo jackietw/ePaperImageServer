@@ -6,7 +6,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Paper Image Management</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/admin.css?v=3">
+    <link rel="stylesheet" href="assets/css/admin.css?v=4">
+    <style>
+        /* Mobile layout fixes to completely bypass aggressive browser caching */
+        @media (max-width: 600px) {
+            .admin-header {
+                padding: 0 35px !important;
+                position: relative !important;
+            }
+
+            .admin-header h1 {
+                font-size: 1.35rem !important;
+                padding: 0 35px !important;
+                box-sizing: border-box !important;
+                line-height: 1.25 !important;
+            }
+
+            .hamburger-menu {
+                display: flex !important;
+                left: 5px !important;
+                top: 6px !important;
+            }
+
+            .main-nav {
+                left: 5px !important;
+            }
+
+            footer {
+                position: relative !important;
+                margin-top: 30px !important;
+                padding: 10px 0 !important;
+                background: transparent !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -55,7 +88,7 @@
     </div>
     <!-- footer -->
     <footer style="position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; padding: 10px;">
-        <p>@2026 E-Paper Upload Website by Jackie | Version 1.1</p>
+        <p>@2026 E-Paper Upload Website by Jackie | Version 1.2</p>
     </footer>
     <script src="assets/js/admin.js"></script>
 </body>
