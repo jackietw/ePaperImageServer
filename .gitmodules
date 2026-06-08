@@ -1,0 +1,6 @@
+[submodule "XNNPACK"]
+	path = XNNPACK
+	url = https://github.com/google/XNNPACK.git
+[submodule "OnnxStream"]
+	path = OnnxStream
+	url = https://github.com/vitoplantamura/OnnxStream.git

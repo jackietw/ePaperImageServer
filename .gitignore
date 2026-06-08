@@ -1,2 +1,11 @@
 _notes/
 processed/
+
+# exclude compiled executables and large models
+/sd
+/sd.exe
+/models/
+
+# exclude submodules' compilation caches/temporaries
+/XNNPACK/build/
+/OnnxStream/src/build/

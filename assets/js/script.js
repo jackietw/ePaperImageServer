@@ -1024,3 +1024,309 @@ function createBMP24Blob(imageData, width, height) {
     return new Blob([buffer], { type: 'image/bmp' });
 }
 
+// ==========================================
+// AI Art Generator Integration (OCI ARM CPU)
+// ==========================================
+
+let activeUploadPanel = 'upload-section'; // Keeps track of active upload/editor/result panel
+
+// Tab switching elements
+const uploadTabBtn = document.getElementById('upload-tab-btn');
+const aiTabBtn = document.getElementById('ai-tab-btn');
+const aiSection = document.getElementById('ai-section');
+
+if (uploadTabBtn && aiTabBtn && aiSection) {
+    aiTabBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        uploadTabBtn.classList.remove('active');
+        aiTabBtn.classList.add('active');
+        
+        // Save currently active panel in Upload flow
+        if (!uploadSection.classList.contains('hidden')) {
+            activeUploadPanel = 'upload-section';
+        } else if (!editorSection.classList.contains('hidden')) {
+            activeUploadPanel = 'editor-section';
+        } else if (!resultSection.classList.contains('hidden')) {
+            activeUploadPanel = 'result-section';
+        }
+        
+        // Hide upload flow panels
+        uploadSection.classList.add('hidden');
+        editorSection.classList.add('hidden');
+        resultSection.classList.add('hidden');
+        
+        // Show AI generator panel
+        aiSection.classList.remove('hidden');
+        
+        // Lazy initialize drawing canvas if scribble mode was active
+        if (currentAiMode === 'scribble') {
+            initDoodleCanvasOnce();
+        }
+    });
+    
+    uploadTabBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        aiTabBtn.classList.remove('active');
+        uploadTabBtn.classList.add('active');
+        
+        // Hide AI generator panel
+        aiSection.classList.add('hidden');
+        
+        // Restore previously active upload flow panel
+        const panel = document.getElementById(activeUploadPanel);
+        if (panel) panel.classList.remove('hidden');
+    });
+}
+
+// AI Mode Switching
+const modeBtns = document.querySelectorAll('.ai-mode-btn');
+const doodleContainer = document.getElementById('ai-doodle-container');
+const refContainer = document.getElementById('ai-ref-container');
+const strengthGroup = document.getElementById('ai-strength-group');
+let currentAiMode = 'text';
+
+modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentAiMode = btn.getAttribute('data-mode');
+        
+        if (currentAiMode === 'text') {
+            doodleContainer.classList.add('hidden');
+            refContainer.classList.add('hidden');
+            strengthGroup.classList.add('hidden');
+        } else if (currentAiMode === 'scribble') {
+            doodleContainer.classList.remove('hidden');
+            refContainer.classList.add('hidden');
+            strengthGroup.classList.add('hidden');
+            initDoodleCanvasOnce();
+        } else if (currentAiMode === 'img2img') {
+            doodleContainer.classList.add('hidden');
+            refContainer.classList.remove('hidden');
+            strengthGroup.classList.remove('hidden');
+        }
+    });
+});
+
+// HTML5 Doodle Canvas Drawing Logic
+const doodleCanvas = document.getElementById('doodle-canvas');
+const brushSizeInput = document.getElementById('brush-size');
+const brushSizeVal = document.getElementById('brush-size-val');
+const doodleClearBtn = document.getElementById('doodle-clear-btn');
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+let dctx = null;
+let isDoodleCanvasInitialized = false;
+
+function initDoodleCanvasOnce() {
+    if (isDoodleCanvasInitialized || !doodleCanvas) return;
+    dctx = doodleCanvas.getContext('2d');
+    
+    // Fill with default white background
+    dctx.fillStyle = '#ffffff';
+    dctx.fillRect(0, 0, doodleCanvas.width, doodleCanvas.height);
+    
+    // Mouse Event Listeners
+    doodleCanvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        [lastX, lastY] = [e.offsetX, e.offsetY];
+    });
+    doodleCanvas.addEventListener('mousemove', drawDoodle);
+    doodleCanvas.addEventListener('mouseup', () => isDrawing = false);
+    doodleCanvas.addEventListener('mouseout', () => isDrawing = false);
+    
+    // Touch Event Listeners (Mobile drawing support)
+    doodleCanvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isDrawing = true;
+        const pos = getTouchPos(e);
+        lastX = pos.x;
+        lastY = pos.y;
+    });
+    doodleCanvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!isDrawing) return;
+        const pos = getTouchPos(e);
+        dctx.beginPath();
+        dctx.moveTo(lastX, lastY);
+        dctx.lineTo(pos.x, pos.y);
+        dctx.strokeStyle = '#000000';
+        dctx.lineWidth = parseInt(brushSizeInput.value, 10);
+        dctx.lineCap = 'round';
+        dctx.lineJoin = 'round';
+        dctx.stroke();
+        lastX = pos.x;
+        lastY = pos.y;
+    });
+    doodleCanvas.addEventListener('touchend', () => isDrawing = false);
+    
+    isDoodleCanvasInitialized = true;
+}
+
+function drawDoodle(e) {
+    if (!isDrawing) return;
+    dctx.beginPath();
+    dctx.moveTo(lastX, lastY);
+    dctx.lineTo(e.offsetX, e.offsetY);
+    dctx.strokeStyle = '#000000';
+    dctx.lineWidth = parseInt(brushSizeInput.value, 10);
+    dctx.lineCap = 'round';
+    dctx.lineJoin = 'round';
+    dctx.stroke();
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+}
+
+function getTouchPos(touchEvent) {
+    const rect = doodleCanvas.getBoundingClientRect();
+    const touch = touchEvent.touches[0];
+    const scaleX = doodleCanvas.width / rect.width;
+    const scaleY = doodleCanvas.height / rect.height;
+    return {
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY
+    };
+}
+
+if (doodleClearBtn) {
+    doodleClearBtn.addEventListener('click', () => {
+        if (dctx) {
+            dctx.fillStyle = '#ffffff';
+            dctx.fillRect(0, 0, doodleCanvas.width, doodleCanvas.height);
+        }
+    });
+}
+
+if (brushSizeInput && brushSizeVal) {
+    brushSizeInput.addEventListener('input', (e) => {
+        brushSizeVal.textContent = e.target.value;
+    });
+}
+
+// Reference Image Selection & Preview
+const refUpload = document.getElementById('ai-ref-upload');
+const refPreview = document.getElementById('ai-ref-preview');
+const refPreviewContainer = document.getElementById('ai-ref-preview-container');
+const refText = document.getElementById('ai-ref-text');
+
+if (refUpload) {
+    refUpload.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (refPreview) refPreview.src = e.target.result;
+                if (refPreviewContainer) refPreviewContainer.classList.remove('hidden');
+                if (refText) refText.textContent = "Change Reference Image";
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+}
+
+// Synchronize Sliders text labels
+const aiSteps = document.getElementById('ai-steps');
+const aiStepsVal = document.getElementById('ai-steps-val');
+if (aiSteps && aiStepsVal) {
+    aiSteps.addEventListener('input', (e) => {
+        aiStepsVal.textContent = e.target.value;
+    });
+}
+
+const aiStrength = document.getElementById('ai-strength');
+const aiStrengthVal = document.getElementById('ai-strength-val');
+if (aiStrength && aiStrengthVal) {
+    aiStrength.addEventListener('input', (e) => {
+        aiStrengthVal.textContent = e.target.value;
+    });
+}
+
+// Generation Submission Handlers
+const aiGenerateBtn = document.getElementById('ai-generate-btn');
+const aiPromptInput = document.getElementById('ai-prompt');
+const aiNegPromptInput = document.getElementById('ai-neg-prompt');
+const aiSeedInput = document.getElementById('ai-seed');
+const aiLoadingOverlay = document.getElementById('ai-loading-overlay');
+
+if (aiGenerateBtn) {
+    aiGenerateBtn.addEventListener('click', () => {
+        const prompt = aiPromptInput.value.trim();
+        if (!prompt) {
+            alert("Please enter a positive prompt description!");
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('prompt', prompt);
+        formData.append('negative_prompt', aiNegPromptInput.value.trim());
+        formData.append('mode', currentAiMode);
+        formData.append('steps', aiSteps.value);
+        formData.append('seed', aiSeedInput.value);
+        formData.append('strength', aiStrength.value);
+        
+        if (currentAiMode === 'scribble') {
+            doodleCanvas.toBlob((blob) => {
+                formData.append('image', blob, 'doodle.png');
+                sendAiRequest(formData);
+            }, 'image/png');
+        } else if (currentAiMode === 'img2img') {
+            if (!refUpload.files || !refUpload.files[0]) {
+                alert("Please upload a reference picture first!");
+                return;
+            }
+            formData.append('image', refUpload.files[0]);
+            sendAiRequest(formData);
+        } else {
+            sendAiRequest(formData);
+        }
+    });
+}
+
+function sendAiRequest(formData) {
+    if (aiLoadingOverlay) aiLoadingOverlay.classList.remove('hidden');
+    
+    fetch('/api/generate_art', {
+        method: 'POST',
+        body: formData
+    })
+    .then(async response => {
+        const text = await response.text();
+        try {
+            return JSON.parse(text);
+        } catch(err) {
+            console.error("Non-JSON response:", text);
+            throw new Error("Invalid response from server");
+        }
+    })
+    .then(data => {
+        if (aiLoadingOverlay) aiLoadingOverlay.classList.add('hidden');
+        if (data.success) {
+            // Load generated image into cropping workspace with cache-busting timestamp
+            imageWorkspace.src = data.path + "?t=" + new Date().getTime();
+            
+            // Switch tabs
+            if (aiTabBtn && uploadTabBtn) {
+                aiTabBtn.classList.remove('active');
+                uploadTabBtn.classList.add('active');
+            }
+            
+            // Show Editor Workspace
+            if (aiSection && editorSection) {
+                aiSection.classList.add('hidden');
+                editorSection.classList.remove('hidden');
+                activeUploadPanel = 'editor-section';
+            }
+            
+            // Automatically initialize cropping and layout
+            initCropper();
+        } else {
+            alert("AI Generation failed: " + data.message);
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        if (aiLoadingOverlay) aiLoadingOverlay.classList.add('hidden');
+        alert("Error calling server. Please make sure dependencies are installed and server is running.");
+    });
+}
+
+

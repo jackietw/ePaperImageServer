@@ -2,3 +2,8 @@ fastapi
 uvicorn
 python-multipart
 pillow
+torch
+torchvision
+diffusers
+transformers
+accelerate
