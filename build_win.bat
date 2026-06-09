@@ -50,6 +50,23 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo ===================================================
-echo Build Sucess！sd.exe has been successfully placed in the project root directory.
+echo [4/4] Checking and Downloading AI Models...
+echo ===================================================
+
+if not exist models mkdir models
+cd models
+if not exist stable-diffusion-xl-turbo-1.0-anyshape-onnxstream (
+    echo Model not found. Cloning Stable Diffusion XL Turbo model (~8GB)...
+    echo (Note: This requires Git LFS installed on your system)
+    git lfs install
+    git clone --depth=1 https://huggingface.co/vitoplantamura/stable-diffusion-xl-turbo-1.0-anyshape-onnxstream
+) else (
+    echo Stable Diffusion XL Turbo model already exists.
+)
+cd ..
+
+echo.
+echo ===================================================
+echo Build Success! sd.exe and models are ready.
 echo ===================================================
 pause

@@ -38,5 +38,22 @@ cp OnnxStream/src/build/sd .
 
 echo ""
 echo "==================================================="
-echo "Build Sucess！sd has been successfully placed in the project root directory."
+echo "[4/4] Checking and Downloading AI Models..."
+echo "==================================================="
+
+mkdir -p models
+cd models
+if [ ! -d "stable-diffusion-xl-turbo-1.0-anyshape-onnxstream" ]; then
+    echo "Model not found. Cloning Stable Diffusion XL Turbo model (~8GB)..."
+    echo "(Note: This requires Git LFS installed on your system)"
+    git lfs install
+    git clone --depth=1 https://huggingface.co/vitoplantamura/stable-diffusion-xl-turbo-1.0-anyshape-onnxstream
+else
+    echo "Stable Diffusion XL Turbo model already exists."
+fi
+cd ..
+
+echo ""
+echo "==================================================="
+echo "Build Success! sd and models are ready."
 echo "==================================================="
