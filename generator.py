@@ -24,9 +24,58 @@ def translate_to_english_if_needed(text: str) -> str:
     try:
         from deep_translator import GoogleTranslator
         print(f"Detecting non-English text. Translating prompt: '{text}'")
-        translated = GoogleTranslator(source='auto', target='en').translate(text)
-        print(f"Translated to: '{translated}'")
-        return translated
+        
+        # Check for specific CJK character ranges to avoid auto-detect failures
+        # (e.g. deep-translator's 'auto' source often fails for Traditional Chinese)
+        has_cjk = any('\u4e00' <= char <= '\u9fff' for char in text)
+        has_kana = any('\u3040' <= char <= '\u30ff' for char in text)
+        has_hangul = any('\uac00' <= char <= '\ud7a3' for char in text)
+        
+        # If it has Chinese characters but no Japanese kana/Korean hangul, prioritize zh-TW
+        is_chinese = has_cjk and not has_kana and not has_hangul
+        
+        translated = None
+        if is_chinese:
+            try:
+                translated = GoogleTranslator(source='zh-TW', target='en').translate(text)
+            except Exception:
+                pass
+                
+        # If not Chinese, or the zh-TW translation failed/was bypassed, try auto-detection
+        if not translated or any(ord(char) >= 128 for char in translated):
+            try:
+                translated = GoogleTranslator(source='auto', target='en').translate(text)
+            except Exception:
+                pass
+                
+        # If translation still contains non-ASCII characters, apply explicit language fallbacks
+        if translated and any(ord(char) >= 128 for char in translated):
+            fallbacks = []
+            if has_hangul:
+                fallbacks = ['ko']
+            elif has_kana:
+                fallbacks = ['ja']
+            elif has_cjk:
+                fallbacks = ['zh-TW']
+            else:
+                fallbacks = ['zh-TW', 'ja', 'ko']
+                
+            for lang in fallbacks:
+                try:
+                    candidate = GoogleTranslator(source=lang, target='en').translate(text)
+                    if candidate and not any(ord(char) >= 128 for char in candidate):
+                        translated = candidate
+                        break
+                except Exception:
+                    continue
+                    
+        if translated and not any(ord(char) >= 128 for char in translated):
+            print(f"Translated to: '{translated}'")
+            return translated
+        else:
+            print("Translation failed or returned non-English text, using original prompt.")
+            return text
+            
     except Exception as e:
         print("Translation failed, using original prompt:", e)
         return text
