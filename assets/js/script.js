@@ -1384,6 +1384,16 @@ if (aiGenerateBtn) {
             return;
         }
         
+        // Disable the button to prevent double-clicks
+        aiGenerateBtn.disabled = true;
+        const originalBtnText = aiGenerateBtn.textContent;
+        aiGenerateBtn.textContent = "Generating...";
+        
+        const resetBtnState = () => {
+            aiGenerateBtn.disabled = false;
+            aiGenerateBtn.textContent = originalBtnText;
+        };
+
         const formData = new FormData();
         formData.append('prompt', prompt);
         formData.append('negative_prompt', aiNegPromptInput.value.trim());
@@ -1397,23 +1407,29 @@ if (aiGenerateBtn) {
         
         if (currentAiMode === 'scribble') {
             doodleCanvas.toBlob((blob) => {
+                if (!blob) {
+                    resetBtnState();
+                    alert("Failed to process doodle canvas!");
+                    return;
+                }
                 formData.append('image', blob, 'doodle.png');
-                sendAiRequest(formData);
+                sendAiRequest(formData, resetBtnState);
             }, 'image/png');
         } else if (currentAiMode === 'img2img') {
             if (!refUpload.files || !refUpload.files[0]) {
                 alert("Please upload a reference picture first!");
+                resetBtnState();
                 return;
             }
             formData.append('image', refUpload.files[0]);
-            sendAiRequest(formData);
+            sendAiRequest(formData, resetBtnState);
         } else {
-            sendAiRequest(formData);
+            sendAiRequest(formData, resetBtnState);
         }
     });
 }
 
-function sendAiRequest(formData) {
+function sendAiRequest(formData, onComplete) {
     const aiLoadingMsg = document.getElementById('ai-loading-msg');
     const defaultMsg = "Processing request. Please wait...";
     
@@ -1438,6 +1454,7 @@ function sendAiRequest(formData) {
     })
     .then(async response => {
         clearInterval(pollInterval);
+        if (onComplete) onComplete();
         if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
         const text = await response.text();
         try {
@@ -1474,6 +1491,7 @@ function sendAiRequest(formData) {
     })
     .catch(error => {
         clearInterval(pollInterval);
+        if (onComplete) onComplete();
         if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
         console.error(error);
         if (aiLoadingOverlay) aiLoadingOverlay.classList.add('hidden');
