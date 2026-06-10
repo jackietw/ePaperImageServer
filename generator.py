@@ -13,12 +13,44 @@ from diffusers import (
     UniPCMultistepScheduler
 )
 
+def translate_to_english_if_needed(text: str) -> str:
+    if not text:
+        return text
+    # Check if there are non-ASCII characters (e.g. Chinese, Japanese, accented characters, etc.)
+    has_non_ascii = any(ord(char) >= 128 for char in text)
+    if not has_non_ascii:
+        return text
+        
+    try:
+        from deep_translator import GoogleTranslator
+        print(f"Detecting non-English text. Translating prompt: '{text}'")
+        translated = GoogleTranslator(source='auto', target='en').translate(text)
+        print(f"Translated to: '{translated}'")
+        return translated
+    except Exception as e:
+        print("Translation failed, using original prompt:", e)
+        return text
+
+
 class EpaperAIGenerator:
     def __init__(self):
         self.device = "cpu"
         self.model_id = "runwayml/stable-diffusion-v1-5"
         self.controlnet_id = "lllyasviel/sd-controlnet-scribble"
         
+        # Models path setting
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.cache_dir = os.path.join(base_dir, "models")
+        
+        # Optimize CPU threads for PyTorch
+        try:
+            num_cores = os.cpu_count()
+            if num_cores:
+                torch.set_num_threads(num_cores)
+                print(f"Set PyTorch CPU threads to {num_cores}")
+        except Exception as e:
+            print("Failed to set PyTorch CPU threads:", e)
+            
         # Pipelines (lazy-loaded)
         self.pipe_txt2img = None
         self.pipe_img2img = None
@@ -28,7 +60,7 @@ class EpaperAIGenerator:
         # Real-time Status Tracking
         self.current_status = "idle"
         self.current_message = ""
-
+ 
     def _init_txt2img(self):
         """Initialize the base text-to-image pipeline and apply memory optimizations."""
         if self.pipe_txt2img is None:
@@ -40,14 +72,15 @@ class EpaperAIGenerator:
                 self.model_id,
                 safety_checker=None,
                 requires_safety_checker=False,
-                torch_dtype=torch.float32
+                torch_dtype=torch.float32,
+                cache_dir=self.cache_dir
             )
             # Use UniPCMultistepScheduler for faster generation on CPU
             self.pipe_txt2img.scheduler = UniPCMultistepScheduler.from_config(self.pipe_txt2img.scheduler.config)
             self.pipe_txt2img = self.pipe_txt2img.to(self.device)
             self.pipe_txt2img.enable_attention_slicing()
         return self.pipe_txt2img
-
+ 
     def _init_img2img(self):
         """Initialize image-to-image pipeline by sharing weights from the base pipeline."""
         if self.pipe_img2img is None:
@@ -67,7 +100,7 @@ class EpaperAIGenerator:
             ).to(self.device)
             self.pipe_img2img.enable_attention_slicing()
         return self.pipe_img2img
-
+ 
     def _init_scribble(self):
         """Initialize ControlNet Scribble pipeline by sharing weights from the base pipeline."""
         if self.pipe_scribble is None:
@@ -77,7 +110,8 @@ class EpaperAIGenerator:
             print("Loading ControlNet Scribble model...")
             self.controlnet = ControlNetModel.from_pretrained(
                 self.controlnet_id,
-                torch_dtype=torch.float32
+                torch_dtype=torch.float32,
+                cache_dir=self.cache_dir
             ).to(self.device)
             
             self.current_status = "initializing_scribble"
@@ -190,6 +224,10 @@ class EpaperAIGenerator:
         - strength: image-to-image strength (0.0 to 1.0)
         - input_image: PIL Image used for img2img or scribble modes
         """
+        # Automatically translate prompts if they contain non-English characters
+        prompt = translate_to_english_if_needed(prompt)
+        negative_prompt = translate_to_english_if_needed(negative_prompt)
+        
         print(f"Generating image. Mode: {mode}, Prompt: '{prompt}', Steps: {steps}, Seed: {seed}")
         self.current_status = "starting"
         self.current_message = "Loading or downloading SD 1.5 base model (about 5GB, it will take a long time for the first execution)..."
@@ -221,7 +259,7 @@ class EpaperAIGenerator:
                 ref_image = input_image.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
                 
                 self.current_status = "generating"
-                self.current_message = "Generating image using PyTorch CPU (estimated 2~3 minutes)..."
+                self.current_message = "AI 正在繪製圖像中 (使用 PyTorch CPU 算圖，預估 5~15 分鐘，取決於主機核心數)..."
                 result = pipe(
                     prompt=prompt,
                     negative_prompt=negative_prompt,
@@ -241,7 +279,7 @@ class EpaperAIGenerator:
                 doodle = doodle_inverted.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
                 
                 self.current_status = "generating"
-                self.current_message = "AI 正在繪製圖像中 (使用 ControlNet CPU 算圖，預估 2~4 分鐘)..."
+                self.current_message = "AI 正在繪製圖像中 (使用 ControlNet CPU 算圖，預估 5~15 分鐘，取決於主機核心數)..."
                 result = pipe(
                     prompt=prompt,
                     negative_prompt=negative_prompt,

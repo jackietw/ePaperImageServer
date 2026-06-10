@@ -39,7 +39,7 @@ fi
 
 
 echo "==================================================="
-echo "[1/3] Compiling Linux Version XNNPACK..."
+echo "[1/5] Compiling Linux Version XNNPACK..."
 echo "==================================================="
 
 cd XNNPACK
@@ -54,7 +54,7 @@ make -j$(nproc)
 cd ../..
 
 echo "==================================================="
-echo "[2/3] Compiling Linux Version OnnxStream..."
+echo "[2/5] Compiling Linux Version OnnxStream..."
 echo "==================================================="
 
 cd OnnxStream/src
@@ -68,14 +68,14 @@ make -j$(nproc)
 cd ../../..
 
 echo "==================================================="
-echo "[3/3] Copying compiled executable to project root..."
+echo "[3/5] Copying compiled executable to project root..."
 echo "==================================================="
 
 cp OnnxStream/src/build/sd .
 
 echo ""
 echo "==================================================="
-echo "[4/4] Checking and Downloading AI Models..."
+echo "[4/5] Checking and Downloading SDXL Turbo Model..."
 echo "==================================================="
 
 mkdir -p models
@@ -92,5 +92,48 @@ cd ..
 
 echo ""
 echo "==================================================="
-echo "Build Success! sd and models are ready."
+echo "[5/5] Setting up Python Environment & PyTorch Models..."
+echo "==================================================="
+
+# 1. Create Python virtual environment if not exists
+if [ ! -f "venv/bin/activate" ]; then
+    echo "Creating Python virtual environment..."
+    rm -rf venv
+    if ! python3 -m venv venv; then
+        echo "==================================================="
+        echo "[ERROR] Failed to create virtual environment."
+        echo "This is often because 'python3-venv' is not installed."
+        echo "On Ubuntu/Debian, please run:"
+        echo "  sudo apt-get update"
+        echo "  sudo apt-get install -y python3-venv python3-pip"
+        echo "==================================================="
+        exit 1
+    fi
+fi
+
+# 2. Activate virtual environment and install dependencies
+source venv/bin/activate
+echo "Installing/updating Python dependencies..."
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# 3. Pre-download SD 1.5 and ControlNet Scribble models
+echo "Pre-downloading PyTorch models (SD 1.5 & ControlNet Scribble)..."
+python3 -c "
+try:
+    from diffusers import StableDiffusionPipeline, ControlNetModel
+    print('Downloading SD 1.5 base model...')
+    StableDiffusionPipeline.from_pretrained('runwayml/stable-diffusion-v1-5', safety_checker=None, requires_safety_checker=False, cache_dir='models')
+    print('Downloading ControlNet Scribble model...')
+    ControlNetModel.from_pretrained('lllyasviel/sd-controlnet-scribble', cache_dir='models')
+    print('All PyTorch models downloaded successfully!')
+except Exception as e:
+    print('[ERROR] Model download failed:', e)
+    exit(1)
+"
+deactivate
+
+echo ""
+echo "==================================================="
+echo "Build Success! All C++ and PyTorch models are ready."
 echo "==================================================="
