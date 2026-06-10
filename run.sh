@@ -1,0 +1,7 @@
+#!/bin/bash
+if [ -f "venv/bin/activate" ]; then
+    echo "Activating virtual environment..."
+    source venv/bin/activate
+fi
+echo "Starting FastAPI server..."
+uvicorn main:app --reload --host 0.0.0.0 --port 8000

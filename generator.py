@@ -1,0 +1,321 @@
+import os
+import torch
+import json
+import numpy as np
+import random
+import io
+from PIL import Image, ImageOps
+from diffusers import (
+    StableDiffusionPipeline, 
+    StableDiffusionImg2ImgPipeline, 
+    StableDiffusionControlNetPipeline, 
+    ControlNetModel,
+    UniPCMultistepScheduler
+)
+from huggingface_hub import InferenceClient
+
+def translate_to_english_if_needed(text: str) -> str:
+    if not text:
+        return text
+    # Check if there are non-ASCII characters (e.g. Chinese, Japanese, accented characters, etc.)
+    has_non_ascii = any(ord(char) >= 128 for char in text)
+    if not has_non_ascii:
+        return text
+        
+    try:
+        from deep_translator import GoogleTranslator
+        print(f"Detecting non-English text. Translating prompt: '{text}'")
+        
+        # Check for specific CJK character ranges to avoid auto-detect failures
+        has_cjk = any('\u4e00' <= char <= '\u9fff' for char in text)
+        has_kana = any('\u3040' <= char <= '\u30ff' for char in text)
+        has_hangul = any('\uac00' <= char <= '\ud7a3' for char in text)
+        
+        # If it has Chinese characters but no Japanese kana/Korean hangul, prioritize zh-TW
+        is_chinese = has_cjk and not has_kana and not has_hangul
+        
+        translated = None
+        if is_chinese:
+            try:
+                translated = GoogleTranslator(source='zh-TW', target='en').translate(text)
+            except Exception:
+                pass
+                
+        # If not Chinese, or the zh-TW translation failed/was bypassed, try auto-detection
+        if not translated or any(ord(char) >= 128 for char in translated):
+            try:
+                translated = GoogleTranslator(source='auto', target='en').translate(text)
+            except Exception:
+                pass
+                
+        # If translation still contains non-ASCII characters, apply explicit language fallbacks
+        if translated and any(ord(char) >= 128 for char in translated):
+            fallbacks = []
+            if has_hangul:
+                fallbacks = ['ko']
+            elif has_kana:
+                fallbacks = ['ja']
+            elif has_cjk:
+                fallbacks = ['zh-TW']
+            else:
+                fallbacks = ['zh-TW', 'ja', 'ko']
+                
+            for lang in fallbacks:
+                try:
+                    candidate = GoogleTranslator(source=lang, target='en').translate(text)
+                    if candidate and not any(ord(char) >= 128 for char in candidate):
+                        translated = candidate
+                        break
+                except Exception:
+                    continue
+                    
+        if translated and not any(ord(char) >= 128 for char in translated):
+            print(f"Translated to: '{translated}'")
+            return translated
+        else:
+            print("Translation failed or returned non-English text, using original prompt.")
+            return text
+            
+    except Exception as e:
+        print("Translation failed, using original prompt:", e)
+        return text
+
+
+class EpaperAIGenerator:
+    def __init__(self):
+        self.device = "cpu"
+        self.model_id = "runwayml/stable-diffusion-v1-5"
+        self.controlnet_id = "lllyasviel/sd-controlnet-scribble"
+        
+        # Models path setting
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.cache_dir = os.path.join(base_dir, "models")
+        self.config_path = os.path.join(base_dir, "config.json")
+        
+        # Optimize CPU threads for PyTorch
+        try:
+            num_cores = os.cpu_count()
+            if num_cores:
+                torch.set_num_threads(num_cores)
+                print(f"Set PyTorch CPU threads to {num_cores}")
+        except Exception as e:
+            print("Failed to set PyTorch CPU threads:", e)
+            
+        # Local Pipelines (lazy-loaded for scribble mode)
+        self.pipe_txt2img = None
+        self.pipe_scribble = None
+        self.controlnet = None
+        
+        # Load Hugging Face token from config.json
+        self.hf_token = ""
+        self.load_config()
+        
+        # Real-time Status Tracking
+        self.current_status = "idle"
+        self.current_message = ""
+  
+    def load_config(self):
+        """Load configuration from config.json if it exists."""
+        if os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    self.hf_token = config.get("hf_token", "").strip()
+                    print("Loaded Hugging Face token from config.json")
+            except Exception as e:
+                print("Failed to load config.json:", e)
+
+    def _init_txt2img(self):
+        """Initialize the base text-to-image pipeline for weight sharing (local CPU)."""
+        if self.pipe_txt2img is None:
+            self.current_status = "loading_local_base"
+            self.current_message = "Loading local SD 1.5 base model (about 5GB, first loading takes time)..."
+            print("Loading Base Stable Diffusion v1.5 pipeline...")
+            self.pipe_txt2img = StableDiffusionPipeline.from_pretrained(
+                self.model_id,
+                safety_checker=None,
+                requires_safety_checker=False,
+                torch_dtype=torch.float32,
+                cache_dir=self.cache_dir
+            )
+            # Use UniPCMultistepScheduler for faster generation on CPU
+            self.pipe_txt2img.scheduler = UniPCMultistepScheduler.from_config(self.pipe_txt2img.scheduler.config)
+            self.pipe_txt2img = self.pipe_txt2img.to(self.device)
+            self.pipe_txt2img.enable_attention_slicing()
+        return self.pipe_txt2img
+  
+    def _init_scribble(self):
+        """Initialize ControlNet Scribble pipeline by sharing weights (local CPU)."""
+        if self.pipe_scribble is None:
+            self.current_status = "loading_local_scribble"
+            self.current_message = "Loading local ControlNet Scribble module (first loading takes time)..."
+            base = self._init_txt2img()
+            print("Loading ControlNet Scribble model...")
+            self.controlnet = ControlNetModel.from_pretrained(
+                self.controlnet_id,
+                torch_dtype=torch.float32,
+                cache_dir=self.cache_dir
+            ).to(self.device)
+            
+            self.current_status = "initializing_local_scribble"
+            self.current_message = "Initializing local Scribble pipeline..."
+            print("Initializing ControlNet Scribble pipeline (sharing weights)...")
+            self.pipe_scribble = StableDiffusionControlNetPipeline(
+                vae=base.vae,
+                text_encoder=base.text_encoder,
+                tokenizer=base.tokenizer,
+                unet=base.unet,
+                controlnet=self.controlnet,
+                scheduler=base.scheduler,
+                safety_checker=None,
+                feature_extractor=None,
+                requires_safety_checker=False
+            ).to(self.device)
+            self.pipe_scribble.enable_attention_slicing()
+        return self.pipe_scribble
+
+    def unload_pytorch(self):
+        """Unload PyTorch models and run garbage collection to free up memory."""
+        print("Unloading PyTorch pipelines to free RAM...")
+        self.pipe_txt2img = None
+        self.pipe_scribble = None
+        self.controlnet = None
+        
+        import gc
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    def generate(self, prompt: str, negative_prompt: str = "", mode: str = "text", 
+                  steps: int = 20, seed: int = -1, strength: float = 0.75, 
+                  input_image: Image.Image = None, engine: str = "cloud", 
+                  hf_token: str = "", cloud_model: str = "black-forest-labs/FLUX.1-schnell") -> Image.Image:
+        """
+        Generate an art image based on prompt and parameters.
+        - engine: "cloud" (Hugging Face API) or "local" (Local PyTorch CPU - Scribble only)
+        - mode: "text" (Text-to-Art), "img2img" (Reference Image-to-Art), or "scribble" (Scribble-to-Art)
+        - cloud_model: Hugging Face model identifier for cloud generation
+        """
+        # Load config dynamically in case it changed
+        self.load_config()
+        
+        # Determine final token to use
+        token = hf_token.strip() if hf_token else self.hf_token
+        
+        # Translate CJK characters
+        prompt = translate_to_english_if_needed(prompt)
+        negative_prompt = translate_to_english_if_needed(negative_prompt)
+        
+        print(f"Generating image. Engine: {engine}, Mode: {mode}, Prompt: '{prompt}', Model: {cloud_model if engine=='cloud' else 'local'}")
+        
+        self.current_status = "generating"
+        
+        if engine == "cloud":
+            if not token:
+                raise ValueError("Hugging Face API Token is missing! Please configure config.json or input it in the UI settings.")
+                
+            self.current_message = f"Calling Hugging Face API ({cloud_model})..."
+            client = InferenceClient(token=token)
+            
+            try:
+                if mode == "text":
+                    print(f"Cloud Text-to-Image generating via model: {cloud_model}")
+                    # FLUX.1-schnell doesn't need negative prompts, but others might.
+                    extra_params = {}
+                    if "schnell" in cloud_model.lower():
+                        extra_params["num_inference_steps"] = 4
+                    elif negative_prompt:
+                        extra_params["negative_prompt"] = negative_prompt
+                    
+                    if seed != -1:
+                        extra_params["seed"] = seed
+                        
+                    image = client.text_to_image(
+                        prompt=prompt,
+                        model=cloud_model,
+                        **extra_params
+                    )
+                    return image
+                    
+                elif mode == "img2img":
+                    if input_image is None:
+                        raise ValueError("Input image is required for img2img mode")
+                    
+                    print(f"Cloud Image-to-Image generating via model: {cloud_model}")
+                    # Resize input image to standard size for efficiency
+                    ref_image = input_image.convert("RGB").resize((1024, 1024) if "xl" in cloud_model.lower() or "flux" in cloud_model.lower() else (512, 512), Image.Resampling.LANCZOS)
+                    
+                    # Convert image to bytes to send to client
+                    buffered = io.BytesIO()
+                    ref_image.save(buffered, format="JPEG")
+                    img_bytes = buffered.getvalue()
+                    
+                    extra_params = {}
+                    if negative_prompt:
+                        extra_params["negative_prompt"] = negative_prompt
+                    if seed != -1:
+                        extra_params["seed"] = seed
+                        
+                    image = client.image_to_image(
+                        image=img_bytes,
+                        prompt=prompt,
+                        model=cloud_model,
+                        strength=strength,
+                        **extra_params
+                    )
+                    return image
+                else:
+                    # Scribble mode is local-only in this version, fallback to local engine
+                    print("Scribble mode detected in Cloud engine selection. Falling back to local CPU engine.")
+                    engine = "local"
+            except Exception as e:
+                print(f"Cloud API generation failed: {e}")
+                raise RuntimeError(f"Cloud API failed: {str(e)}. Please check if your Token is valid, the model is available, or if you hit rate limits.")
+            finally:
+                self.current_status = "idle"
+                self.current_message = ""
+                
+        if engine == "local":
+            if mode != "scribble":
+                raise ValueError("Local generation is only supported for 'scribble' mode on this branch.")
+                
+            if input_image is None:
+                raise ValueError("Scribble image is required for scribble mode")
+                
+            try:
+                pipe = self._init_scribble()
+                
+                # Standard input resolution for SD v1.5 is 512x512
+                width = 512
+                height = 512
+                
+                # Invert colors (ControlNet scribble expects black background with white lines, or white background with black lines depending on setup)
+                # The scribble canvas in index.html is white background with black lines. We invert it to black background with white lines.
+                doodle_inverted = ImageOps.invert(input_image.convert("L"))
+                doodle = doodle_inverted.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
+                
+                # Set seed
+                if seed == -1:
+                    generator = None
+                else:
+                    generator = torch.Generator(device=self.device).manual_seed(seed)
+                
+                self.current_status = "generating"
+                self.current_message = "Local AI drawing image (using ControlNet CPU, estimated 5~15 minutes)..."
+                
+                result = pipe(
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,
+                    image=doodle,
+                    num_inference_steps=steps,
+                    generator=generator
+                )
+                return result.images[0]
+            finally:
+                # Unload PyTorch models automatically after scribble generation to free RAM
+                self.unload_pytorch()
+                self.current_status = "idle"
+                self.current_message = ""
+
+# Singleton generator instance
+ai_generator = EpaperAIGenerator()

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Paper Image Tools</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=4">
+    <link rel="stylesheet" href="assets/css/style.css?v=5">
     <!-- Cropper.js CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <style>
@@ -54,7 +54,8 @@
             <h1>E-Paper Image Tools</h1>
             <p>6-Color Dithering & Resizing</p>
             <nav class="main-nav">
-                <a href="index.html" class="nav-btn active">Upload Image</a>
+                <a href="#" class="nav-btn active" id="upload-tab-btn">Upload Image</a>
+                <a href="#" class="nav-btn" id="ai-tab-btn">AI Art Generator</a>
                 <a href="admin.html" class="nav-btn">Manage Image</a>
             </nav>
         </header>
@@ -63,9 +64,116 @@
             <div class="upload-section" id="upload-section">
                 <input type="file" id="image-upload" accept="image/*,.heic" hidden>
                 <label for="image-upload" class="upload-label">
-                    <div class="upload-icon">📁</div>
-                    <span id="upload-text">Upload Image</span>
+                     <div class="upload-icon">📁</div>
+                     <span id="upload-text">Upload Image</span>
                 </label>
+            </div>
+
+            <!-- AI Art Generator Section -->
+            <div class="ai-section hidden" id="ai-section">
+                <div class="workspace">
+                    <div class="controls" style="width: 100%; max-width: 100%;">
+                        <!-- AI Mode Selector -->
+                        <div class="ai-modes-tabs">
+                            <button class="ai-mode-btn active" data-mode="text">Text to Art</button>
+                            <button class="ai-mode-btn" data-mode="scribble">Scribble to Art</button>
+                            <button class="ai-mode-btn" data-mode="img2img">Reference Image to Art</button>
+                        </div>
+
+                        <!-- Engine Source Configuration -->
+                        <div class="ai-settings-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 15px;">
+                            <div class="control-group">
+                                <label for="ai-engine">Generation Source</label>
+                                <select id="ai-engine" class="styled-select">
+                                    <option value="cloud" selected>Cloud API (Hugging Face - Fast & Free)</option>
+                                    <option value="local">Local CPU (PyTorch - Slow)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Cloud API Settings (Visible only when cloud is active) -->
+                        <div id="ai-cloud-config-group">
+                            <div class="ai-settings-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 15px;">
+                                <div class="control-group">
+                                    <label for="ai-cloud-model">Cloud Model</label>
+                                    <select id="ai-cloud-model" class="styled-select">
+                                        <option value="black-forest-labs/FLUX.1-schnell" selected>FLUX.1-schnell (Recommended)</option>
+                                        <option value="Lykon/dreamshaper-xl-v2-turbo">DreamShaper XL Turbo</option>
+                                        <option value="stabilityai/stable-diffusion-xl-base-1.0">Stable Diffusion XL 1.0</option>
+                                        <option value="stabilityai/stable-diffusion-3-medium">Stable Diffusion 3 Medium</option>
+                                    </select>
+                                </div>
+                                <div class="control-group">
+                                    <label for="ai-hf-token">Hugging Face API Token (<a href="https://huggingface.co/settings/tokens" target="_blank" style="color: var(--primary-color); text-decoration: underline;">Get Free Token</a>)</label>
+                                    <input type="password" id="ai-hf-token" class="styled-input" placeholder="Enter Token (Auto-saves)...">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prompt Input -->
+                        <div class="control-group">
+                            <label for="ai-prompt">Positive Prompt</label>
+                            <textarea id="ai-prompt" class="styled-textarea" placeholder="Describe the art you want to generate... (e.g., A fantasy forest with glowing mushrooms, oil painting)" rows="3"></textarea>
+                        </div>
+
+                        <div class="control-group" id="ai-neg-prompt-group">
+                            <label for="ai-neg-prompt">Negative Prompt (Optional)</label>
+                            <textarea id="ai-neg-prompt" class="styled-textarea" placeholder="What to avoid in the image... (e.g., blurry, ugly, low quality)" rows="2"></textarea>
+                        </div>
+
+                        <!-- Doodle Canvas (only visible in scribble mode) -->
+                        <div id="ai-doodle-container" class="control-group hidden">
+                            <label>Draw Your Doodle / Scribble (White canvas, black brush)</label>
+                            <div class="doodle-canvas-wrapper">
+                                <canvas id="doodle-canvas" width="512" height="512"></canvas>
+                                <div class="doodle-toolbar">
+                                    <div class="brush-size-group">
+                                        <label for="brush-size">Brush Size: <span id="brush-size-val">8</span>px</label>
+                                        <input type="range" id="brush-size" min="2" max="30" value="8" style="width: 120px;">
+                                    </div>
+                                    <button type="button" id="doodle-clear-btn" class="icon-btn danger-btn" style="padding: 6px 12px; font-size: 0.8rem; flex: none;">Clear Canvas</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reference Image Input (only visible in img2img mode) -->
+                        <div id="ai-ref-container" class="control-group hidden">
+                            <label for="ai-ref-upload" class="upload-label" style="border: 1px dashed var(--glass-border); padding: 20px; border-radius: 8px; cursor: pointer;">
+                                <div class="upload-icon" style="font-size: 1.5rem;">🖼️</div>
+                                <span id="ai-ref-text">Choose Reference Image</span>
+                            </label>
+                            <input type="file" id="ai-ref-upload" accept="image/*" hidden>
+                            <div id="ai-ref-preview-container" class="hidden" style="margin-top: 10px; text-align: center;">
+                                <img id="ai-ref-preview" src="" alt="Reference Preview" style="max-height: 200px; border-radius: 8px; border: 1px solid var(--glass-border);">
+                            </div>
+                        </div>
+
+                        <!-- Generation settings -->
+                        <div class="ai-settings-grid">
+                            <div class="control-group" id="ai-steps-group">
+                                <label for="ai-steps">Steps: <span id="ai-steps-val">1</span></label>
+                                <input type="range" id="ai-steps" min="1" max="50" value="1">
+                            </div>
+                            <div class="control-group hidden" id="ai-strength-group">
+                                <label for="ai-strength">Image Influence: <span id="ai-strength-val">0.75</span></label>
+                                <input type="range" id="ai-strength" min="0.05" max="0.95" step="0.05" value="0.75">
+                            </div>
+                            <div class="control-group">
+                                <label for="ai-seed">Seed (-1 for Random)</label>
+                                <input type="number" id="ai-seed" value="-1" min="-1" class="styled-input">
+                            </div>
+                        </div>
+
+                        <button id="ai-generate-btn" class="primary-btn" style="margin-top: 15px; width: 100%;">Generate Art</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Spinner Overlay -->
+            <div id="ai-loading-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
+                <div class="spinner" style="width: 50px; height: 50px; border: 5px solid rgba(59, 130, 246, 0.2); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <h3 style="color: var(--text-primary); margin: 0;">Generating Art...</h3>
+                <p id="ai-loading-msg" style="color: var(--text-secondary); margin: 0; font-size: 0.9rem; text-align: center; max-width: 80%;">Processing request. Please wait...</p>
             </div>
 
             <div class="editor-section hidden" id="editor-section">
@@ -75,11 +183,9 @@
                     </div>
                     <div class="controls">
                         <div class="toolbar">
-                            <button id="rotate-btn" class="icon-btn" title="Rotate 90 degrees">↻ Rotate 90
-                                degrees</button>
+                            <button id="rotate-btn" class="icon-btn" title="Rotate 90 degrees">↻ Rotate 90 degrees</button>
                             <button id="reset-btn" class="icon-btn" title="Reset Settings">↺ Reset Settings</button>
-                            <button id="restart-btn" class="icon-btn danger-btn" title="Upload New Image">✕ Upload New
-                                Image</button>
+                            <button id="restart-btn" class="icon-btn danger-btn" title="Upload New Image">✕ Upload New Image</button>
                         </div>
                         <div class="control-group">
                             <label for="ratio_select">Output Size</label>
@@ -135,10 +241,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <!-- HEIC to JPEG converter -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
-    <script src="assets/js/script.js"></script>
+    <script src="assets/js/script.js?v=5"></script>
     <!-- footer -->
     <footer style="position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; padding: 10px;">
-        <p>@2026 E-Paper Upload Website by Jackie | Version 1.2</p>
+        <p>@2026 E-Paper Upload Website by Jackie | Version 1.3</p>
     </footer>
 </body>
 

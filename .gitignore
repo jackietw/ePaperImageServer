@@ -1,2 +1,6 @@
 _notes/
 processed/
+config.json
+models/
+venv/
+__pycache__/

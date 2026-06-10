@@ -1024,3 +1024,461 @@ function createBMP24Blob(imageData, width, height) {
     return new Blob([buffer], { type: 'image/bmp' });
 }
 
+// ==========================================
+// AI Art Generator Integration (Cloud & Local)
+// ==========================================
+
+let activeUploadPanel = 'upload-section'; // Keeps track of active upload/editor/result panel
+
+// Tab switching elements
+const uploadTabBtn = document.getElementById('upload-tab-btn');
+const aiTabBtn = document.getElementById('ai-tab-btn');
+const aiSection = document.getElementById('ai-section');
+
+if (uploadTabBtn && aiTabBtn && aiSection) {
+    aiTabBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        uploadTabBtn.classList.remove('active');
+        aiTabBtn.classList.add('active');
+        
+        // Save currently active panel in Upload flow
+        if (!uploadSection.classList.contains('hidden')) {
+            activeUploadPanel = 'upload-section';
+        } else if (!editorSection.classList.contains('hidden')) {
+            activeUploadPanel = 'editor-section';
+        } else if (!resultSection.classList.contains('hidden')) {
+            activeUploadPanel = 'result-section';
+        }
+        
+        // Hide upload flow panels
+        uploadSection.classList.add('hidden');
+        editorSection.classList.add('hidden');
+        resultSection.classList.add('hidden');
+        
+        // Show AI generator panel
+        aiSection.classList.remove('hidden');
+        
+        // Lazy initialize drawing canvas if scribble mode was active
+        if (currentAiMode === 'scribble') {
+            initDoodleCanvasOnce();
+        }
+        updateAiSettingsVisibility();
+    });
+    
+    uploadTabBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        aiTabBtn.classList.remove('active');
+        uploadTabBtn.classList.add('active');
+        
+        // Hide AI generator panel
+        aiSection.classList.add('hidden');
+        
+        // Restore previously active upload flow panel
+        const panel = document.getElementById(activeUploadPanel);
+        if (panel) panel.classList.remove('hidden');
+    });
+}
+
+// AI Engine and Mode Switching
+const aiEngine = document.getElementById('ai-engine');
+const cloudConfig = document.getElementById('ai-cloud-config-group');
+const aiCloudModel = document.getElementById('ai-cloud-model');
+const hfTokenInput = document.getElementById('ai-hf-token');
+const aiStepsGroup = document.getElementById('ai-steps-group');
+const aiSteps = document.getElementById('ai-steps');
+const aiStepsVal = document.getElementById('ai-steps-val');
+const aiStrengthGroup = document.getElementById('ai-strength-group');
+const aiStrength = document.getElementById('ai-strength');
+const aiStrengthVal = document.getElementById('ai-strength-val');
+const doodleContainer = document.getElementById('ai-doodle-container');
+const refContainer = document.getElementById('ai-ref-container');
+const aiNegPromptGroup = document.getElementById('ai-neg-prompt-group');
+
+const modeBtns = document.querySelectorAll('.ai-mode-btn');
+let currentAiMode = 'text';
+
+function updateAiSettingsVisibility() {
+    const engine = aiEngine.value;
+    const mode = currentAiMode;
+    
+    // Toggle Cloud Config Group
+    if (engine === 'cloud') {
+        cloudConfig.classList.remove('hidden');
+    } else {
+        cloudConfig.classList.add('hidden');
+    }
+    
+    // Mode specific display
+    if (mode === 'text') {
+        doodleContainer.classList.add('hidden');
+        refContainer.classList.add('hidden');
+        aiStrengthGroup.classList.add('hidden');
+        aiNegPromptGroup.classList.remove('hidden');
+    } else if (mode === 'scribble') {
+        doodleContainer.classList.remove('hidden');
+        refContainer.classList.add('hidden');
+        aiStrengthGroup.classList.add('hidden');
+        aiNegPromptGroup.classList.remove('hidden');
+        initDoodleCanvasOnce();
+    } else if (mode === 'img2img') {
+        doodleContainer.classList.add('hidden');
+        refContainer.classList.remove('hidden');
+        aiStrengthGroup.classList.remove('hidden');
+        aiNegPromptGroup.classList.remove('hidden');
+    }
+    
+    // Engine specific steps adjustment
+    if (engine === 'cloud') {
+        const model = aiCloudModel.value;
+        if (model.includes('schnell')) {
+            aiStepsGroup.classList.add('hidden'); // FLUX.1-schnell handles steps internally (4)
+        } else {
+            aiStepsGroup.classList.remove('hidden');
+            aiSteps.min = 1;
+            aiSteps.max = 30;
+            if (parseInt(aiSteps.value) > 30 || parseInt(aiSteps.value) < 1) aiSteps.value = 4;
+            aiStepsVal.textContent = aiSteps.value;
+        }
+    } else {
+        // Local CPU mode (Scribble only, requires steps for PyTorch SD 1.5)
+        aiStepsGroup.classList.remove('hidden');
+        aiSteps.min = 5;
+        aiSteps.max = 50;
+        if (parseInt(aiSteps.value) < 5 || parseInt(aiSteps.value) > 50) aiSteps.value = 20;
+        aiStepsVal.textContent = aiSteps.value;
+    }
+}
+
+if (aiEngine) {
+    aiEngine.addEventListener('change', () => {
+        // If local engine is selected and we are in text or img2img mode, alert user
+        if (aiEngine.value === 'local' && (currentAiMode === 'text' || currentAiMode === 'img2img')) {
+            alert("Local CPU mode only supports 'Scribble to Art' mode on this server. Switch AI Mode to 'Scribble to Art' or choose 'Cloud API' source.");
+            aiEngine.value = 'cloud';
+        }
+        updateAiSettingsVisibility();
+    });
+}
+
+if (aiCloudModel) {
+    aiCloudModel.addEventListener('change', updateAiSettingsVisibility);
+}
+
+modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const newMode = btn.getAttribute('data-mode');
+        // Scribble works in both local and cloud, but text/img2img only in cloud
+        if (aiEngine.value === 'local' && (newMode === 'text' || newMode === 'img2img')) {
+            // Auto-switch to cloud engine if they choose text/img2img
+            aiEngine.value = 'cloud';
+        }
+        
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentAiMode = newMode;
+        
+        updateAiSettingsVisibility();
+    });
+});
+
+// Load Hugging Face API Token (try localStorage first, fallback to server configuration)
+if (hfTokenInput) {
+    const localToken = localStorage.getItem('hf_token');
+    if (localToken) {
+        hfTokenInput.value = localToken;
+    } else {
+        // Fetch from server config
+        fetch('/api/get_config')
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.hf_token) {
+                    hfTokenInput.value = data.hf_token;
+                    localStorage.setItem('hf_token', data.hf_token);
+                }
+            })
+            .catch(err => console.error("Error fetching hf_token from server config:", err));
+    }
+    
+    hfTokenInput.addEventListener('input', () => {
+        localStorage.setItem('hf_token', hfTokenInput.value.trim());
+    });
+}
+
+
+// HTML5 Doodle Canvas Drawing Logic
+const doodleCanvas = document.getElementById('doodle-canvas');
+const brushSizeInput = document.getElementById('brush-size');
+const brushSizeVal = document.getElementById('brush-size-val');
+const doodleClearBtn = document.getElementById('doodle-clear-btn');
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+let dctx = null;
+let isDoodleCanvasInitialized = false;
+
+function initDoodleCanvasOnce() {
+    if (isDoodleCanvasInitialized || !doodleCanvas) return;
+    dctx = doodleCanvas.getContext('2d');
+    
+    // Fill with default white background
+    dctx.fillStyle = '#ffffff';
+    dctx.fillRect(0, 0, doodleCanvas.width, doodleCanvas.height);
+    
+    // Mouse Event Listeners
+    doodleCanvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        const pos = getMousePos(e);
+        lastX = pos.x;
+        lastY = pos.y;
+    });
+    doodleCanvas.addEventListener('mousemove', drawDoodle);
+    doodleCanvas.addEventListener('mouseup', () => isDrawing = false);
+    doodleCanvas.addEventListener('mouseout', () => isDrawing = false);
+    
+    // Touch Event Listeners (Mobile drawing support)
+    doodleCanvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isDrawing = true;
+        const pos = getTouchPos(e);
+        lastX = pos.x;
+        lastY = pos.y;
+    });
+    doodleCanvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!isDrawing) return;
+        const pos = getTouchPos(e);
+        dctx.beginPath();
+        dctx.moveTo(lastX, lastY);
+        dctx.lineTo(pos.x, pos.y);
+        dctx.strokeStyle = '#000000';
+        dctx.lineWidth = parseInt(brushSizeInput.value, 10);
+        dctx.lineCap = 'round';
+        dctx.lineJoin = 'round';
+        dctx.stroke();
+        lastX = pos.x;
+        lastY = pos.y;
+    });
+    doodleCanvas.addEventListener('touchend', () => isDrawing = false);
+    
+    isDoodleCanvasInitialized = true;
+}
+
+function drawDoodle(e) {
+    if (!isDrawing) return;
+    const pos = getMousePos(e);
+    dctx.beginPath();
+    dctx.moveTo(lastX, lastY);
+    dctx.lineTo(pos.x, pos.y);
+    dctx.strokeStyle = '#000000';
+    dctx.lineWidth = parseInt(brushSizeInput.value, 10);
+    dctx.lineCap = 'round';
+    dctx.lineJoin = 'round';
+    dctx.stroke();
+    lastX = pos.x;
+    lastY = pos.y;
+}
+
+function getMousePos(e) {
+    const rect = doodleCanvas.getBoundingClientRect();
+    const style = window.getComputedStyle(doodleCanvas);
+    const borderLeft = parseFloat(style.borderLeftWidth) || 0;
+    const borderTop = parseFloat(style.borderTopWidth) || 0;
+    const borderRight = parseFloat(style.borderRightWidth) || 0;
+    const borderBottom = parseFloat(style.borderBottomWidth) || 0;
+    
+    const scaleX = doodleCanvas.width / (rect.width - borderLeft - borderRight);
+    const scaleY = doodleCanvas.height / (rect.height - borderTop - borderBottom);
+    
+    return {
+        x: (e.clientX - rect.left - borderLeft) * scaleX,
+        y: (e.clientY - rect.top - borderTop) * scaleY
+    };
+}
+
+function getTouchPos(touchEvent) {
+    const rect = doodleCanvas.getBoundingClientRect();
+    const touch = touchEvent.touches[0];
+    const style = window.getComputedStyle(doodleCanvas);
+    const borderLeft = parseFloat(style.borderLeftWidth) || 0;
+    const borderTop = parseFloat(style.borderTopWidth) || 0;
+    const borderRight = parseFloat(style.borderRightWidth) || 0;
+    const borderBottom = parseFloat(style.borderBottomWidth) || 0;
+    
+    const scaleX = doodleCanvas.width / (rect.width - borderLeft - borderRight);
+    const scaleY = doodleCanvas.height / (rect.height - borderTop - borderBottom);
+    
+    return {
+        x: (touch.clientX - rect.left - borderLeft) * scaleX,
+        y: (touch.clientY - rect.top - borderTop) * scaleY
+    };
+}
+
+if (doodleClearBtn) {
+    doodleClearBtn.addEventListener('click', () => {
+        if (dctx) {
+            dctx.fillStyle = '#ffffff';
+            dctx.fillRect(0, 0, doodleCanvas.width, doodleCanvas.height);
+        }
+    });
+}
+
+if (brushSizeInput && brushSizeVal) {
+    brushSizeInput.addEventListener('input', (e) => {
+        brushSizeVal.textContent = e.target.value;
+    });
+}
+
+// Reference Image Selection & Preview
+const refUpload = document.getElementById('ai-ref-upload');
+const refPreview = document.getElementById('ai-ref-preview');
+const refPreviewContainer = document.getElementById('ai-ref-preview-container');
+const refText = document.getElementById('ai-ref-text');
+
+if (refUpload) {
+    refUpload.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (refPreview) refPreview.src = e.target.result;
+                if (refPreviewContainer) refPreviewContainer.classList.remove('hidden');
+                if (refText) refText.textContent = "Change Reference Image";
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+}
+
+// Synchronize Sliders text labels
+if (aiSteps && aiStepsVal) {
+    aiSteps.addEventListener('input', (e) => {
+        aiStepsVal.textContent = e.target.value;
+    });
+}
+
+if (aiStrength && aiStrengthVal) {
+    aiStrength.addEventListener('input', (e) => {
+        aiStrengthVal.textContent = e.target.value;
+    });
+}
+
+// Generation Submission Handlers
+const aiGenerateBtn = document.getElementById('ai-generate-btn');
+const aiPromptInput = document.getElementById('ai-prompt');
+const aiNegPromptInput = document.getElementById('ai-neg-prompt');
+const aiSeedInput = document.getElementById('ai-seed');
+const aiLoadingOverlay = document.getElementById('ai-loading-overlay');
+
+if (aiGenerateBtn) {
+    aiGenerateBtn.addEventListener('click', () => {
+        const prompt = aiPromptInput.value.trim();
+        if (!prompt) {
+            alert("Please enter a positive prompt description!");
+            return;
+        }
+        
+        const engine = aiEngine.value;
+        const hfToken = hfTokenInput.value.trim();
+        
+        if (engine === 'cloud' && !hfToken) {
+            alert("Please enter a Hugging Face API Token for Cloud generation!");
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('prompt', prompt);
+        formData.append('negative_prompt', aiNegPromptInput.value.trim());
+        formData.append('mode', currentAiMode);
+        formData.append('steps', aiSteps.value);
+        formData.append('seed', aiSeedInput.value);
+        formData.append('strength', aiStrength.value);
+        formData.append('engine', engine);
+        formData.append('hf_token', hfToken);
+        formData.append('cloud_model', aiCloudModel.value);
+        
+        if (currentAiMode === 'scribble') {
+            doodleCanvas.toBlob((blob) => {
+                formData.append('image', blob, 'doodle.png');
+                sendAiRequest(formData);
+            }, 'image/png');
+        } else if (currentAiMode === 'img2img') {
+            if (!refUpload.files || !refUpload.files[0]) {
+                alert("Please upload a reference picture first!");
+                return;
+            }
+            formData.append('image', refUpload.files[0]);
+            sendAiRequest(formData);
+        } else {
+            sendAiRequest(formData);
+        }
+    });
+}
+
+function sendAiRequest(formData) {
+    const aiLoadingMsg = document.getElementById('ai-loading-msg');
+    const defaultMsg = "Processing request. Please wait...";
+    
+    if (aiLoadingOverlay) aiLoadingOverlay.classList.remove('hidden');
+    if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
+    
+    // Start polling status
+    let pollInterval = setInterval(() => {
+        fetch('/api/generation_status')
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.message && aiLoadingMsg) {
+                    aiLoadingMsg.textContent = data.message;
+                }
+            })
+            .catch(err => console.error("Error polling generation status:", err));
+    }, 2000);
+    
+    fetch('/api/generate_art', {
+        method: 'POST',
+        body: formData
+    })
+    .then(async response => {
+        clearInterval(pollInterval);
+        if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
+        const text = await response.text();
+        try {
+            return JSON.parse(text);
+        } catch(err) {
+            console.error("Non-JSON response:", text);
+            throw new Error("Invalid response from server");
+        }
+    })
+    .then(data => {
+        if (aiLoadingOverlay) aiLoadingOverlay.classList.add('hidden');
+        if (data.success) {
+            // Load generated image into cropping workspace
+            imageWorkspace.src = data.image;
+            
+            // Switch tabs
+            if (aiTabBtn && uploadTabBtn) {
+                aiTabBtn.classList.remove('active');
+                uploadTabBtn.classList.add('active');
+            }
+            
+            // Show Editor Workspace
+            if (aiSection && editorSection) {
+                aiSection.classList.add('hidden');
+                editorSection.classList.remove('hidden');
+                activeUploadPanel = 'editor-section';
+            }
+            
+            // Automatically initialize cropping and layout
+            initCropper();
+        } else {
+            alert("AI Generation failed: " + data.message);
+        }
+    })
+    .catch(error => {
+        clearInterval(pollInterval);
+        if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
+        console.error(error);
+        if (aiLoadingOverlay) aiLoadingOverlay.classList.add('hidden');
+        alert("Error calling server. " + error.message);
+    });
+}
+
+

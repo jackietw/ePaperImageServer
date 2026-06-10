@@ -1,14 +1,19 @@
 import os
 import time
 import shutil
+import asyncio
+import io
+import base64
 from typing import List
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
+from generator import ai_generator
 
 app = FastAPI()
+generation_lock = asyncio.Lock()
 
 app.add_middleware(
     CORSMiddleware,
@@ -87,6 +92,78 @@ async def upload_image(image: UploadFile = File(...)):
         "message": "File uploaded successfully",
         "path": f"processed/{latest_filename}"
     })
+
+@app.post("/api/generate_art")
+async def generate_art(
+    prompt: str = Form(...),
+    negative_prompt: str = Form(""),
+    mode: str = Form("text"),
+    steps: int = Form(20),
+    seed: int = Form(-1),
+    strength: float = Form(0.75),
+    engine: str = Form("cloud"),
+    hf_token: str = Form(""),
+    cloud_model: str = Form("black-forest-labs/FLUX.1-schnell"),
+    image: UploadFile = File(None)
+):
+    try:
+        input_image = None
+        if image is not None:
+            # Read uploaded image bytes
+            contents = await image.read()
+            input_image = Image.open(io.BytesIO(contents))
+            
+        # Call generator inside the global lock and run in a separate thread to keep the event loop active
+        async with generation_lock:
+            output_image = await asyncio.to_thread(
+                ai_generator.generate,
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                mode=mode,
+                steps=steps,
+                seed=seed,
+                strength=strength,
+                input_image=input_image,
+                engine=engine,
+                hf_token=hf_token,
+                cloud_model=cloud_model
+            )
+        
+        # Convert output image to base64 Data URL to load directly in frontend without writing to disk
+        buffered = io.BytesIO()
+        output_image.save(buffered, format="PNG")
+        img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        img_data_url = f"data:image/png;base64,{img_base64}"
+        
+        # Return base64 data
+        return JSONResponse(content={
+            "success": True,
+            "message": "AI image generated successfully",
+            "image": img_data_url
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(content={
+            "success": False,
+            "message": f"Generation failed: {str(e)}"
+        }, status_code=500)
+
+@app.get("/api/generation_status")
+def get_generation_status():
+    return {
+        "status": ai_generator.current_status,
+        "message": ai_generator.current_message
+    }
+
+@app.get("/api/get_config")
+def get_config():
+    # Make sure we load config dynamically so it's always up to date
+    ai_generator.load_config()
+    return {
+        "hf_token": ai_generator.hf_token
+    }
+
 
 @app.get("/api/list_images")
 def list_images():

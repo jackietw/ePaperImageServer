@@ -2,3 +2,11 @@ fastapi
 uvicorn
 python-multipart
 pillow
+torch
+torchvision
+diffusers
+transformers
+accelerate
+deep-translator
+huggingface_hub
+requests
