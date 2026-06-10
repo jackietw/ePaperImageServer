@@ -1130,7 +1130,9 @@ function initDoodleCanvasOnce() {
     // Mouse Event Listeners
     doodleCanvas.addEventListener('mousedown', (e) => {
         isDrawing = true;
-        [lastX, lastY] = [e.offsetX, e.offsetY];
+        const pos = getMousePos(e);
+        lastX = pos.x;
+        lastY = pos.y;
     });
     doodleCanvas.addEventListener('mousemove', drawDoodle);
     doodleCanvas.addEventListener('mouseup', () => isDrawing = false);
@@ -1166,25 +1168,51 @@ function initDoodleCanvasOnce() {
 
 function drawDoodle(e) {
     if (!isDrawing) return;
+    const pos = getMousePos(e);
     dctx.beginPath();
     dctx.moveTo(lastX, lastY);
-    dctx.lineTo(e.offsetX, e.offsetY);
+    dctx.lineTo(pos.x, pos.y);
     dctx.strokeStyle = '#000000';
     dctx.lineWidth = parseInt(brushSizeInput.value, 10);
     dctx.lineCap = 'round';
     dctx.lineJoin = 'round';
     dctx.stroke();
-    [lastX, lastY] = [e.offsetX, e.offsetY];
+    lastX = pos.x;
+    lastY = pos.y;
+}
+
+function getMousePos(e) {
+    const rect = doodleCanvas.getBoundingClientRect();
+    const style = window.getComputedStyle(doodleCanvas);
+    const borderLeft = parseFloat(style.borderLeftWidth) || 0;
+    const borderTop = parseFloat(style.borderTopWidth) || 0;
+    const borderRight = parseFloat(style.borderRightWidth) || 0;
+    const borderBottom = parseFloat(style.borderBottomWidth) || 0;
+    
+    const scaleX = doodleCanvas.width / (rect.width - borderLeft - borderRight);
+    const scaleY = doodleCanvas.height / (rect.height - borderTop - borderBottom);
+    
+    return {
+        x: (e.clientX - rect.left - borderLeft) * scaleX,
+        y: (e.clientY - rect.top - borderTop) * scaleY
+    };
 }
 
 function getTouchPos(touchEvent) {
     const rect = doodleCanvas.getBoundingClientRect();
     const touch = touchEvent.touches[0];
-    const scaleX = doodleCanvas.width / rect.width;
-    const scaleY = doodleCanvas.height / rect.height;
+    const style = window.getComputedStyle(doodleCanvas);
+    const borderLeft = parseFloat(style.borderLeftWidth) || 0;
+    const borderTop = parseFloat(style.borderTopWidth) || 0;
+    const borderRight = parseFloat(style.borderRightWidth) || 0;
+    const borderBottom = parseFloat(style.borderBottomWidth) || 0;
+    
+    const scaleX = doodleCanvas.width / (rect.width - borderLeft - borderRight);
+    const scaleY = doodleCanvas.height / (rect.height - borderTop - borderBottom);
+    
     return {
-        x: (touch.clientX - rect.left) * scaleX,
-        y: (touch.clientY - rect.top) * scaleY
+        x: (touch.clientX - rect.left - borderLeft) * scaleX,
+        y: (touch.clientY - rect.top - borderTop) * scaleY
     };
 }
 
@@ -1282,13 +1310,31 @@ if (aiGenerateBtn) {
 }
 
 function sendAiRequest(formData) {
+    const aiLoadingMsg = document.getElementById('ai-loading-msg');
+    const defaultMsg = "This may take 1 to 3 minutes on OCI ARM CPU. Please wait...";
+    
     if (aiLoadingOverlay) aiLoadingOverlay.classList.remove('hidden');
+    if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
+    
+    // Start polling status
+    let pollInterval = setInterval(() => {
+        fetch('/api/generation_status')
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.message && aiLoadingMsg) {
+                    aiLoadingMsg.textContent = data.message;
+                }
+            })
+            .catch(err => console.error("Error polling generation status:", err));
+    }, 2000);
     
     fetch('/api/generate_art', {
         method: 'POST',
         body: formData
     })
     .then(async response => {
+        clearInterval(pollInterval);
+        if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
         const text = await response.text();
         try {
             return JSON.parse(text);
@@ -1323,6 +1369,8 @@ function sendAiRequest(formData) {
         }
     })
     .catch(error => {
+        clearInterval(pollInterval);
+        if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
         console.error(error);
         if (aiLoadingOverlay) aiLoadingOverlay.classList.add('hidden');
         alert("Error calling server. Please make sure dependencies are installed and server is running.");

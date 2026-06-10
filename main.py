@@ -142,6 +142,13 @@ async def generate_art(
             "message": f"Generation failed: {str(e)}"
         }, status_code=500)
 
+@app.get("/api/generation_status")
+def get_generation_status():
+    return {
+        "status": ai_generator.current_status,
+        "message": ai_generator.current_message
+    }
+
 @app.get("/api/list_images")
 def list_images():
     images = []

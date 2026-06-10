@@ -46,13 +46,42 @@ A complete web-based solution for processing, managing, and preparing images for
 - **Browser**: A modern web browser with HTML5 Canvas support (Chrome, Edge, Firefox, Safari, etc.).
 - **JavaScript**: Must be enabled for the image processing and dithering algorithms to run.
 
+## Installation and Setup
+
+### Windows
+
+1. **Build the Inference Engine**:
+   Run [build_win.bat](file:///d:/GitHUB/ImageServer/build_win.bat) to verify dependencies, compile XNNPACK and OnnxStream, and download the Stable Diffusion XL Turbo model (~8GB).
+2. **Run the Application**:
+   Run [run.bat](file:///d:/GitHUB/ImageServer/run.bat) (or manually install requirements and run `uvicorn main:app --host 0.0.0.0 --port 8000`).
+
+### Linux (Ubuntu/Debian)
+
+1. **Build the Inference Engine**:
+   Install required system dependencies and run the build script:
+
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y build-essential cmake git git-lfs python3-venv
+   ./build_linux.sh
+   ```
+
+2. **Run the Application**:
+   Simply make the run script executable and run it:
+
+   ```bash
+   chmod +x run.sh
+   ./run.sh
+   ```
+
+   *(This script will automatically create a virtual environment, install requirements, and start the server.)*
+
 ## Usage
 
-1. Run `run.bat` (or `pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8000`).
-2. Navigate to `http://localhost:8000/` to upload and process a new image.
-3. Select your output dimensions (Landscape vs. Portrait), adjust image filters, select a Dithering algorithm, and click **Apply 6-Color Dithering**.
-4. Click **Save** to save the processed image to the server.
-5. Navigate to `admin.html` (via the "Manage Image" navigation link) to view your gallery, delete older files, and select which image should be displayed on the E-Paper device.
+1. Open your browser and navigate to `http://localhost:8000/` to upload and process a new image.
+2. Select your output dimensions (Landscape vs. Portrait), adjust image filters, select a Dithering algorithm, and click **Apply 6-Color Dithering**.
+3. Click **Save** to save the processed image to the server.
+4. Navigate to `admin.html` (via the "Manage Image" navigation link) to view your gallery, delete older files, and select which image should be displayed on the E-Paper device.
 
 ## Device (MCU/ESP32) Workflow for Battery Saving
 

@@ -1,9 +1,39 @@
 @echo off
+if "%1"=="clean" (
+    echo Cleaning build cache...
+    if exist XNNPACK\build rmdir /s /q XNNPACK\build
+    if exist OnnxStream\src\build rmdir /s /q OnnxStream\src\build
+    if exist sd.exe del /f /q sd.exe
+    echo Clean finished.
+    exit /b 0
+)
+
+where git >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] git is not installed or not in PATH!
+    pause
+    exit /b 1
+)
+where cmake >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] cmake is not installed or not in PATH!
+    pause
+    exit /b 1
+)
+where git-lfs >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] git-lfs is not installed or not in PATH!
+    echo Please install Git LFS (https://git-lfs.github.com/) first.
+    pause
+    exit /b 1
+)
+
 echo ===================================================
 echo [1/3] Compiling XNNPACK... (Accelerator Library)...
 echo ===================================================
 
 cd XNNPACK
+git checkout 5671db0572e2d5240f2f08f9085174014742ac2d
 if not exist build mkdir build
 cd build
 
@@ -27,7 +57,7 @@ if not exist build mkdir build
 cd build
 
 rem Setting and compiling OnnxStream, linking to XNNPACK
-cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=../../XNNPACK ..
+cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=../../../XNNPACK ..
 cmake --build . --config Release --parallel %NUMBER_OF_PROCESSORS%
 
 if %ERRORLEVEL% neq 0 (

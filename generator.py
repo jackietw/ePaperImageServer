@@ -24,10 +24,16 @@ class EpaperAIGenerator:
         self.pipe_img2img = None
         self.pipe_scribble = None
         self.controlnet = None
+        
+        # Real-time Status Tracking
+        self.current_status = "idle"
+        self.current_message = ""
 
     def _init_txt2img(self):
         """Initialize the base text-to-image pipeline and apply memory optimizations."""
         if self.pipe_txt2img is None:
+            self.current_status = "downloading_base"
+            self.current_message = "Loading or downloading SD 1.5 base model (about 5GB, it will take a long time for the first execution)..."
             print("Loading Base Stable Diffusion v1.5 pipeline...")
             # We disable safety_checker to save ~600MB of RAM and prevent false positives
             self.pipe_txt2img = StableDiffusionPipeline.from_pretrained(
@@ -45,6 +51,8 @@ class EpaperAIGenerator:
     def _init_img2img(self):
         """Initialize image-to-image pipeline by sharing weights from the base pipeline."""
         if self.pipe_img2img is None:
+            self.current_status = "loading_img2img"
+            self.current_message = "Loading or downloading Image-to-Image module (about 5GB, it will take a long time for the first execution)..."
             base = self._init_txt2img()
             print("Initializing Image-to-Image pipeline (sharing weights)...")
             self.pipe_img2img = StableDiffusionImg2ImgPipeline(
@@ -63,6 +71,8 @@ class EpaperAIGenerator:
     def _init_scribble(self):
         """Initialize ControlNet Scribble pipeline by sharing weights from the base pipeline."""
         if self.pipe_scribble is None:
+            self.current_status = "loading_scribble"
+            self.current_message = "Loading or downloading ControlNet Scribble module (about 5GB, it will take a long time for the first execution)..."
             base = self._init_txt2img()
             print("Loading ControlNet Scribble model...")
             self.controlnet = ControlNetModel.from_pretrained(
@@ -70,6 +80,8 @@ class EpaperAIGenerator:
                 torch_dtype=torch.float32
             ).to(self.device)
             
+            self.current_status = "initializing_scribble"
+            self.current_message = "Loading or downloading ControlNet Scribble module (about 5GB, it will take a long time for the first execution)..."
             print("Initializing ControlNet Scribble pipeline (sharing weights)...")
             self.pipe_scribble = StableDiffusionControlNetPipeline(
                 vae=base.vae,
@@ -87,6 +99,8 @@ class EpaperAIGenerator:
 
     def _generate_via_onnxstream(self, prompt: str, negative_prompt: str, steps: int, seed: int) -> Image.Image:
         """Execute OnnxStream CLI to run SDXL Turbo text2img generation."""
+        self.current_status = "generating"
+        self.current_message = "Generating image using OnnxStream engine (estimated 1~2 minutes)..."
         is_windows = platform.system() == "Windows"
         executable = "sd.exe" if is_windows else "./sd"
         
@@ -177,10 +191,16 @@ class EpaperAIGenerator:
         - input_image: PIL Image used for img2img or scribble modes
         """
         print(f"Generating image. Mode: {mode}, Prompt: '{prompt}', Steps: {steps}, Seed: {seed}")
+        self.current_status = "starting"
+        self.current_message = "Loading or downloading SD 1.5 base model (about 5GB, it will take a long time for the first execution)..."
         
         if mode == "text":
-            # Call OnnxStream SDXL Turbo path
-            return self._generate_via_onnxstream(prompt, negative_prompt, steps, seed)
+            try:
+                # Call OnnxStream SDXL Turbo path
+                return self._generate_via_onnxstream(prompt, negative_prompt, steps, seed)
+            finally:
+                self.current_status = "idle"
+                self.current_message = ""
             
         # Standard input resolution for SD v1.5 is 512x512
         width = 512
@@ -200,6 +220,8 @@ class EpaperAIGenerator:
                 pipe = self._init_img2img()
                 ref_image = input_image.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
                 
+                self.current_status = "generating"
+                self.current_message = "Generating image using PyTorch CPU (estimated 2~3 minutes)..."
                 result = pipe(
                     prompt=prompt,
                     negative_prompt=negative_prompt,
@@ -218,6 +240,8 @@ class EpaperAIGenerator:
                 doodle_inverted = ImageOps.invert(input_image.convert("L"))
                 doodle = doodle_inverted.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
                 
+                self.current_status = "generating"
+                self.current_message = "AI 正在繪製圖像中 (使用 ControlNet CPU 算圖，預估 2~4 分鐘)..."
                 result = pipe(
                     prompt=prompt,
                     negative_prompt=negative_prompt,
@@ -231,6 +255,8 @@ class EpaperAIGenerator:
         finally:
             # Unload PyTorch models automatically after scribble or img2img generation to free RAM
             self.unload_pytorch()
+            self.current_status = "idle"
+            self.current_message = ""
 
 # Singleton generator instance
 ai_generator = EpaperAIGenerator()

@@ -2,11 +2,48 @@
 
 set -e
 
+if [ "$1" = "clean" ]; then
+    echo "Cleaning build cache..."
+    rm -rf XNNPACK/build
+    rm -rf OnnxStream/src/build
+    rm -f sd
+    echo "Clean finished."
+    exit 0
+fi
+
+
+# Check dependencies
+dependencies=("git" "cmake" "make" "git-lfs")
+missing_deps=()
+
+for dep in "${dependencies[@]}"; do
+    if ! command -v "$dep" &> /dev/null; then
+        missing_deps+=("$dep")
+    fi
+done
+
+if [ ${#missing_deps[@]} -ne 0 ]; then
+    echo "==================================================="
+    echo "[ERROR] Missing required dependencies:"
+    for dep in "${missing_deps[@]}"; do
+        echo "  - $dep"
+    done
+    echo "==================================================="
+    echo "Please install them before running this script."
+    echo "On Ubuntu/Debian, you can install them with:"
+    echo "  sudo apt-get update"
+    echo "  sudo apt-get install -y build-essential cmake git git-lfs"
+    echo "==================================================="
+    exit 1
+fi
+
+
 echo "==================================================="
 echo "[1/3] Compiling Linux Version XNNPACK..."
 echo "==================================================="
 
 cd XNNPACK
+git checkout 5671db0572e2d5240f2f08f9085174014742ac2d
 mkdir -p build
 cd build
 
@@ -25,7 +62,7 @@ mkdir -p build
 cd build
 
 # Setting and compiling OnnxStream, linking to XNNPACK
-cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=../../XNNPACK ..
+cmake -DMAX_SPEED=ON -DOS_LLM=OFF -DOS_CUDA=OFF -DXNNPACK_DIR=../../../XNNPACK ..
 make -j$(nproc)
 
 cd ../../..
