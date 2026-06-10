@@ -29,7 +29,13 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo ===================================================
-echo [1/3] Compiling XNNPACK... (Accelerator Library)...
+echo [1/6] Initializing Submodules...
+echo ===================================================
+
+git submodule update --init --recursive
+
+echo ===================================================
+echo [2/6] Compiling XNNPACK... (Accelerator Library)...
 echo ===================================================
 
 cd XNNPACK
@@ -49,7 +55,7 @@ if %ERRORLEVEL% neq 0 (
 cd ..\..
 
 echo ===================================================
-echo [2/3] Compiling OnnxStream... (Inference Engine)...
+echo [3/6] Compiling OnnxStream... (Inference Engine)...
 echo ===================================================
 
 cd OnnxStream\src
@@ -68,7 +74,7 @@ if %ERRORLEVEL% neq 0 (
 cd ..\..\..
 
 echo ===================================================
-echo [3/3] Copying compiled executable to project root...
+echo [4/6] Copying compiled executable to project root...
 echo ===================================================
 
 copy OnnxStream\src\build\Release\sd.exe .
@@ -80,7 +86,7 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo ===================================================
-echo [4/4] Checking and Downloading AI Models...
+echo [5/6] Checking and Downloading SDXL Turbo Model...
 echo ===================================================
 
 if not exist models mkdir models
@@ -97,6 +103,59 @@ cd ..
 
 echo.
 echo ===================================================
-echo Build Success! sd.exe and models are ready.
+echo [6/6] Setting up Python Environment ^& PyTorch Models...
+echo ===================================================
+
+rem 1. Check Python installation
+where python >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo [WARNING] Python is not installed or not in PATH!
+    echo Skipping python virtual environment and PyTorch model download...
+    goto build_success
+)
+
+rem 2. Create Python virtual environment if not exists
+if not exist venv\Scripts\activate (
+    echo Creating Python virtual environment...
+    if exist venv rmdir /s /q venv
+    python -m venv venv
+    if %ERRORLEVEL% neq 0 (
+        echo [WARNING] Failed to create virtual environment!
+        goto build_success
+    )
+)
+
+rem 3. Activate virtual environment and install dependencies
+call venv\Scripts\activate
+echo Installing/updating Python dependencies...
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+rem 4. Pre-download PyTorch models
+echo Pre-downloading PyTorch models (SD 1.5 ^& ControlNet Scribble)...
+python -c "
+try:
+    from diffusers import StableDiffusionPipeline, ControlNetModel
+    print('Downloading SD 1.5 base model...')
+    StableDiffusionPipeline.from_pretrained('runwayml/stable-diffusion-v1-5', safety_checker=None, requires_safety_checker=False, cache_dir='models')
+    print('Downloading ControlNet Scribble model...')
+    ControlNetModel.from_pretrained('lllyasviel/sd-controlnet-scribble', cache_dir='models')
+    print('All PyTorch models downloaded successfully!')
+except Exception as e:
+    print('[ERROR] Model download failed:', e)
+    exit(1)
+"
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] PyTorch models download failed!
+    call deactivate
+    exit /b %ERRORLEVEL%
+)
+
+call deactivate
+
+:build_success
+echo.
+echo ===================================================
+echo Build Success! All C++ and PyTorch models are ready.
 echo ===================================================
 pause

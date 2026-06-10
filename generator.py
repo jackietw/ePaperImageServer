@@ -259,7 +259,7 @@ class EpaperAIGenerator:
                 ref_image = input_image.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
                 
                 self.current_status = "generating"
-                self.current_message = "AI 正在繪製圖像中 (使用 PyTorch CPU 算圖，預估 5~15 分鐘，取決於主機核心數)..."
+                self.current_message = "AI was drawing image (using PyTorch CPU, estimated 5~15 minutes, depending on the number of host cores)..."
                 result = pipe(
                     prompt=prompt,
                     negative_prompt=negative_prompt,
@@ -279,7 +279,7 @@ class EpaperAIGenerator:
                 doodle = doodle_inverted.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
                 
                 self.current_status = "generating"
-                self.current_message = "AI 正在繪製圖像中 (使用 ControlNet CPU 算圖，預估 5~15 分鐘，取決於主機核心數)..."
+                self.current_message = "AI was drawing image (using ControlNet CPU to do, estimated 5~15 minutes, depending on the number of host cores)..."
                 result = pipe(
                     prompt=prompt,
                     negative_prompt=negative_prompt,

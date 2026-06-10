@@ -37,9 +37,14 @@ if [ ${#missing_deps[@]} -ne 0 ]; then
     exit 1
 fi
 
+echo "==================================================="
+echo "[1/6] Initializing Submodules..."
+echo "==================================================="
+
+git submodule update --init --recursive
 
 echo "==================================================="
-echo "[1/5] Compiling Linux Version XNNPACK..."
+echo "[2/6] Compiling Linux Version XNNPACK..."
 echo "==================================================="
 
 cd XNNPACK
@@ -54,7 +59,7 @@ make -j$(nproc)
 cd ../..
 
 echo "==================================================="
-echo "[2/5] Compiling Linux Version OnnxStream..."
+echo "[3/6] Compiling Linux Version OnnxStream..."
 echo "==================================================="
 
 cd OnnxStream/src
@@ -68,14 +73,14 @@ make -j$(nproc)
 cd ../../..
 
 echo "==================================================="
-echo "[3/5] Copying compiled executable to project root..."
+echo "[4/6] Copying compiled executable to project root..."
 echo "==================================================="
 
 cp OnnxStream/src/build/sd .
 
 echo ""
 echo "==================================================="
-echo "[4/5] Checking and Downloading SDXL Turbo Model..."
+echo "[5/6] Checking and Downloading SDXL Turbo Model..."
 echo "==================================================="
 
 mkdir -p models
@@ -92,7 +97,7 @@ cd ..
 
 echo ""
 echo "==================================================="
-echo "[5/5] Setting up Python Environment & PyTorch Models..."
+echo "[6/6] Setting up Python Environment & PyTorch Models..."
 echo "==================================================="
 
 # 1. Create Python virtual environment if not exists
