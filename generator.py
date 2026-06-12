@@ -230,11 +230,58 @@ class EpaperAIGenerator:
                     if seed != -1:
                         extra_params["seed"] = seed
                         
-                    image = client.text_to_image(
-                        prompt=prompt,
-                        model=cloud_model,
-                        **extra_params
-                    )
+                    try:
+                        image = client.text_to_image(
+                            prompt=prompt,
+                            model=cloud_model,
+                            **extra_params
+                        )
+                    except StopIteration:
+                        # Fallback for huggingface_hub library bug where provider routing fails with StopIteration
+                        print("huggingface_hub StopIteration detected. Falling back to direct HTTP API call...")
+                        import requests
+                        
+                        api_url = f"https://api-inference.huggingface.co/models/{cloud_model}"
+                        headers = {
+                            "Authorization": f"Bearer {token}",
+                            "Content-Type": "application/json"
+                        }
+                        
+                        payload = {
+                            "inputs": prompt,
+                            "parameters": {}
+                        }
+                        if negative_prompt:
+                            payload["parameters"]["negative_prompt"] = negative_prompt
+                        if seed != -1:
+                            payload["parameters"]["seed"] = seed
+                        if "num_inference_steps" in extra_params:
+                            payload["parameters"]["num_inference_steps"] = extra_params["num_inference_steps"]
+                            
+                        response = requests.post(api_url, headers=headers, json=payload)
+                        
+                        # Check if response is JSON (often holds warning or "estimated_time" if model loading)
+                        content_type = response.headers.get("content-type", "")
+                        if "application/json" in content_type:
+                            try:
+                                res_json = response.json()
+                                if isinstance(res_json, dict) and "error" in res_json:
+                                    err_msg = res_json.get("error", "")
+                                    if "loading" in err_msg.lower() and "estimated_time" in res_json:
+                                        err_msg += f" (Estimated loading time: {res_json['estimated_time']:.1f}s)"
+                                    raise RuntimeError(f"Hugging Face API error ({response.status_code}): {err_msg}")
+                            except ValueError:
+                                pass
+                                
+                        if response.status_code != 200:
+                            try:
+                                err_json = response.json()
+                                err_msg = err_json.get("error", "") or err_json.get("message", "")
+                            except Exception:
+                                err_msg = response.text
+                            raise RuntimeError(f"Hugging Face API error ({response.status_code}): {err_msg}")
+                            
+                        image = Image.open(io.BytesIO(response.content))
                     return image
                     
                 elif mode == "img2img":
@@ -256,13 +303,63 @@ class EpaperAIGenerator:
                     if seed != -1:
                         extra_params["seed"] = seed
                         
-                    image = client.image_to_image(
-                        image=img_bytes,
-                        prompt=prompt,
-                        model=cloud_model,
-                        strength=strength,
-                        **extra_params
-                    )
+                    try:
+                        image = client.image_to_image(
+                            image=img_bytes,
+                            prompt=prompt,
+                            model=cloud_model,
+                            strength=strength,
+                            **extra_params
+                        )
+                    except StopIteration:
+                        # Fallback for huggingface_hub library bug where provider routing fails with StopIteration
+                        print("huggingface_hub StopIteration detected. Falling back to direct HTTP API call...")
+                        import requests
+                        import base64
+                        
+                        api_url = f"https://api-inference.huggingface.co/models/{cloud_model}"
+                        headers = {
+                            "Authorization": f"Bearer {token}",
+                            "Content-Type": "application/json"
+                        }
+                        
+                        encoded_image = base64.b64encode(img_bytes).decode('utf-8')
+                        payload = {
+                            "inputs": encoded_image,
+                            "parameters": {
+                                "prompt": prompt,
+                                "strength": strength
+                            }
+                        }
+                        if negative_prompt:
+                            payload["parameters"]["negative_prompt"] = negative_prompt
+                        if seed != -1:
+                            payload["parameters"]["seed"] = seed
+                            
+                        response = requests.post(api_url, headers=headers, json=payload)
+                        
+                        # Check if response is JSON (often holds warning or "estimated_time" if model loading)
+                        content_type = response.headers.get("content-type", "")
+                        if "application/json" in content_type:
+                            try:
+                                res_json = response.json()
+                                if isinstance(res_json, dict) and "error" in res_json:
+                                    err_msg = res_json.get("error", "")
+                                    if "loading" in err_msg.lower() and "estimated_time" in res_json:
+                                        err_msg += f" (Estimated loading time: {res_json['estimated_time']:.1f}s)"
+                                    raise RuntimeError(f"Hugging Face API error ({response.status_code}): {err_msg}")
+                            except ValueError:
+                                pass
+                                
+                        if response.status_code != 200:
+                            try:
+                                err_json = response.json()
+                                err_msg = err_json.get("error", "") or err_json.get("message", "")
+                            except Exception:
+                                err_msg = response.text
+                            raise RuntimeError(f"Hugging Face API error ({response.status_code}): {err_msg}")
+                            
+                        image = Image.open(io.BytesIO(response.content))
                     return image
                 else:
                     # Scribble mode is local-only in this version, fallback to local engine
