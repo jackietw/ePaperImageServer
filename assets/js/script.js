@@ -1107,12 +1107,15 @@ let currentAiMode = 'text';
 function updateAiSettingsVisibility() {
     const engine = aiEngine.value;
     const mode = currentAiMode;
+    const localConfig = document.getElementById('ai-local-config-group');
     
-    // Toggle Cloud Config Group
+    // Toggle Config Groups based on Engine
     if (engine === 'cloud') {
         cloudConfig.classList.remove('hidden');
+        if (localConfig) localConfig.classList.add('hidden');
     } else {
         cloudConfig.classList.add('hidden');
+        if (localConfig) localConfig.classList.remove('hidden');
     }
     
     // Mode specific display
@@ -1169,16 +1172,7 @@ function updateAiSettingsVisibility() {
     }
 }
 
-if (aiEngine) {
-    aiEngine.addEventListener('change', () => {
-        // If local engine is selected and we are in text mode, alert user
-        if (aiEngine.value === 'local' && currentAiMode === 'text') {
-            alert("Local CPU mode does not support 'Text to Art' mode on this server. Switch AI Mode to 'Scribble to Art' or 'Reference Image to Art', or choose 'Cloud API' source.");
-            aiEngine.value = 'cloud';
-        }
-        updateAiSettingsVisibility();
-    });
-}
+
 
 if (aiCloudModel) {
     aiCloudModel.addEventListener('change', updateAiSettingsVisibility);
@@ -1187,10 +1181,15 @@ if (aiCloudModel) {
 modeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         const newMode = btn.getAttribute('data-mode');
-        // local CPU mode only blocks text mode now (scribble & img2img are supported)
-        if (aiEngine.value === 'local' && newMode === 'text') {
-            // Auto-switch to cloud engine if they choose text mode
+        const aiEngineLabel = document.getElementById('ai-engine-label');
+        
+        // Auto-switch engine based on mode
+        if (newMode === 'text') {
             aiEngine.value = 'cloud';
+            if (aiEngineLabel) aiEngineLabel.textContent = 'Cloud API (Hugging Face - Fast & Free)';
+        } else {
+            aiEngine.value = 'local';
+            if (aiEngineLabel) aiEngineLabel.textContent = 'Local CPU (PyTorch - Slow & Local)';
         }
         
         modeBtns.forEach(b => b.classList.remove('active'));
@@ -1424,6 +1423,11 @@ if (aiGenerateBtn) {
         formData.append('engine', engine);
         formData.append('hf_token', hfToken);
         formData.append('cloud_model', aiCloudModel.value);
+        
+        const aiLocalModel = document.getElementById('ai-local-model');
+        if (aiLocalModel) {
+            formData.append('local_model', aiLocalModel.value);
+        }
         
         if (currentAiMode === 'scribble') {
             doodleCanvas.toBlob((blob) => {

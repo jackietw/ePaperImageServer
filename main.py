@@ -104,6 +104,7 @@ async def generate_art(
     engine: str = Form("cloud"),
     hf_token: str = Form(""),
     cloud_model: str = Form("black-forest-labs/FLUX.1-schnell"),
+    local_model: str = Form("Lykon/dreamshaper-8"),
     image: UploadFile = File(None)
 ):
     try:
@@ -126,7 +127,8 @@ async def generate_art(
                 input_image=input_image,
                 engine=engine,
                 hf_token=hf_token,
-                cloud_model=cloud_model
+                cloud_model=cloud_model,
+                local_model=local_model
             )
         
         # Convert output image to base64 Data URL to load directly in frontend without writing to disk

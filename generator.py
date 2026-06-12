@@ -231,7 +231,8 @@ class EpaperAIGenerator:
     def generate(self, prompt: str, negative_prompt: str = "", mode: str = "text", 
                   steps: int = 20, seed: int = -1, strength: float = 0.75, 
                   input_image: Image.Image = None, engine: str = "cloud", 
-                  hf_token: str = "", cloud_model: str = "black-forest-labs/FLUX.1-schnell") -> Image.Image:
+                  hf_token: str = "", cloud_model: str = "black-forest-labs/FLUX.1-schnell",
+                  local_model: str = "Lykon/dreamshaper-8") -> Image.Image:
         """
         Generate an art image based on prompt and parameters.
         - engine: "cloud" (Hugging Face API) or "local" (Local PyTorch CPU - Scribble only)
@@ -241,6 +242,12 @@ class EpaperAIGenerator:
         # Load config dynamically in case it changed
         self.load_config()
         
+        # Check if local model changed and unload if needed
+        if engine == "local" and local_model and self.model_id != local_model:
+            print(f"Local model changed from {self.model_id} to {local_model}. Unloading memory...")
+            self.unload_pytorch()
+            self.model_id = local_model
+            
         # Determine final token to use
         token = hf_token.strip() if hf_token else self.hf_token
         
