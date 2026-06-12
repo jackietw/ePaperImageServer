@@ -101,9 +101,10 @@ class EpaperAIGenerator:
         except Exception as e:
             print("Failed to set PyTorch CPU threads:", e)
             
-        # Local Pipelines (lazy-loaded for scribble mode)
+        # Local Pipelines (lazy-loaded)
         self.pipe_txt2img = None
         self.pipe_scribble = None
+        self.pipe_img2img = None
         self.controlnet = None
         
         # Load Hugging Face token from config.json
@@ -174,11 +175,32 @@ class EpaperAIGenerator:
             self.pipe_scribble.enable_attention_slicing()
         return self.pipe_scribble
 
+    def _init_img2img(self):
+        """Initialize local Stable Diffusion Image-to-Image pipeline by sharing weights (local CPU)."""
+        if self.pipe_img2img is None:
+            self.current_status = "initializing_local_img2img"
+            self.current_message = "Initializing local Image-to-Image pipeline..."
+            base = self._init_txt2img()
+            print("Initializing Stable Diffusion Img2Img pipeline (sharing weights)...")
+            self.pipe_img2img = StableDiffusionImg2ImgPipeline(
+                vae=base.vae,
+                text_encoder=base.text_encoder,
+                tokenizer=base.tokenizer,
+                unet=base.unet,
+                scheduler=base.scheduler,
+                safety_checker=None,
+                feature_extractor=None,
+                requires_safety_checker=False
+            ).to(self.device)
+            self.pipe_img2img.enable_attention_slicing()
+        return self.pipe_img2img
+
     def unload_pytorch(self):
         """Unload PyTorch models and run garbage collection to free up memory."""
         print("Unloading PyTorch pipelines to free RAM...")
         self.pipe_txt2img = None
         self.pipe_scribble = None
+        self.pipe_img2img = None
         self.controlnet = None
         
         import gc
@@ -393,43 +415,69 @@ class EpaperAIGenerator:
                 self.current_message = ""
                 
         if engine == "local":
-            if mode != "scribble":
-                raise ValueError("Local generation is only supported for 'scribble' mode on this branch.")
+            if mode not in ["scribble", "img2img"]:
+                raise ValueError("Local generation is only supported for 'scribble' and 'img2img' modes on this branch.")
                 
             if input_image is None:
-                raise ValueError("Scribble image is required for scribble mode")
+                raise ValueError(f"Input image is required for {mode} mode")
                 
             try:
-                pipe = self._init_scribble()
-                
-                # Standard input resolution for SD v1.5 is 512x512
-                width = 512
-                height = 512
-                
-                # Invert colors (ControlNet scribble expects black background with white lines, or white background with black lines depending on setup)
-                # The scribble canvas in index.html is white background with black lines. We invert it to black background with white lines.
-                doodle_inverted = ImageOps.invert(input_image.convert("L"))
-                doodle = doodle_inverted.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
-                
-                # Set seed
-                if seed == -1:
-                    generator = None
-                else:
-                    generator = torch.Generator(device=self.device).manual_seed(seed)
-                
-                self.current_status = "generating"
-                self.current_message = "Local AI drawing image (using ControlNet CPU, estimated 5~15 minutes)..."
-                
-                result = pipe(
-                    prompt=prompt,
-                    negative_prompt=negative_prompt,
-                    image=doodle,
-                    num_inference_steps=steps,
-                    generator=generator
-                )
-                return result.images[0]
+                if mode == "scribble":
+                    pipe = self._init_scribble()
+                    
+                    # Standard input resolution for SD v1.5 is 512x512
+                    width = 512
+                    height = 512
+                    
+                    # Invert colors (ControlNet scribble expects black background with white lines)
+                    doodle_inverted = ImageOps.invert(input_image.convert("L"))
+                    doodle = doodle_inverted.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
+                    
+                    # Set seed
+                    if seed == -1:
+                        generator = None
+                    else:
+                        generator = torch.Generator(device=self.device).manual_seed(seed)
+                    
+                    self.current_status = "generating"
+                    self.current_message = "Local AI drawing image (using ControlNet CPU, estimated 5~15 minutes)..."
+                    
+                    result = pipe(
+                        prompt=prompt,
+                        negative_prompt=negative_prompt,
+                        image=doodle,
+                        num_inference_steps=steps,
+                        generator=generator
+                    )
+                    return result.images[0]
+                    
+                elif mode == "img2img":
+                    pipe = self._init_img2img()
+                    
+                    # Standard input resolution for SD v1.5 is 512x512
+                    width = 512
+                    height = 512
+                    ref_image = input_image.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
+                    
+                    if seed == -1:
+                        generator = None
+                    else:
+                        generator = torch.Generator(device=self.device).manual_seed(seed)
+                        
+                    self.current_status = "generating"
+                    self.current_message = "Local AI drawing image (using SD 1.5 CPU, estimated 5~10 minutes)..."
+                    
+                    result = pipe(
+                        prompt=prompt,
+                        negative_prompt=negative_prompt,
+                        image=ref_image,
+                        strength=strength,
+                        num_inference_steps=steps,
+                        generator=generator
+                    )
+                    return result.images[0]
             finally:
-                # Unload PyTorch models automatically after scribble generation to free RAM
+                # Unload PyTorch models automatically after generation to free RAM
                 self.unload_pytorch()
                 self.current_status = "idle"
                 self.current_message = ""

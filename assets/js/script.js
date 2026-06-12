@@ -1164,9 +1164,9 @@ function updateAiSettingsVisibility() {
 
 if (aiEngine) {
     aiEngine.addEventListener('change', () => {
-        // If local engine is selected and we are in text or img2img mode, alert user
-        if (aiEngine.value === 'local' && (currentAiMode === 'text' || currentAiMode === 'img2img')) {
-            alert("Local CPU mode only supports 'Scribble to Art' mode on this server. Switch AI Mode to 'Scribble to Art' or choose 'Cloud API' source.");
+        // If local engine is selected and we are in text mode, alert user
+        if (aiEngine.value === 'local' && currentAiMode === 'text') {
+            alert("Local CPU mode does not support 'Text to Art' mode on this server. Switch AI Mode to 'Scribble to Art' or 'Reference Image to Art', or choose 'Cloud API' source.");
             aiEngine.value = 'cloud';
         }
         updateAiSettingsVisibility();
@@ -1180,9 +1180,9 @@ if (aiCloudModel) {
 modeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         const newMode = btn.getAttribute('data-mode');
-        // Scribble works in both local and cloud, but text/img2img only in cloud
-        if (aiEngine.value === 'local' && (newMode === 'text' || newMode === 'img2img')) {
-            // Auto-switch to cloud engine if they choose text/img2img
+        // local CPU mode only blocks text mode now (scribble & img2img are supported)
+        if (aiEngine.value === 'local' && newMode === 'text') {
+            // Auto-switch to cloud engine if they choose text mode
             aiEngine.value = 'cloud';
         }
         
