@@ -1143,6 +1143,20 @@ function updateAiSettingsVisibility() {
         refContainer.classList.remove('hidden');
         aiStrengthGroup.classList.remove('hidden');
         aiNegPromptGroup.classList.remove('hidden');
+    } else if (mode === 'controlnet_canny') {
+        doodleContainer.classList.add('hidden');
+        refContainer.classList.remove('hidden');
+        aiStrengthGroup.classList.add('hidden'); // ControlNet strictly enforces structure, so we don't need strength slider
+        aiNegPromptGroup.classList.remove('hidden');
+        // Force engine to local since we only support this locally for now
+        if (engine !== 'local') {
+            aiEngine.value = 'local';
+            // re-trigger the engine label update and visibility update
+            const eLabel = document.getElementById('ai-engine-label');
+            if (eLabel) eLabel.textContent = 'Local Server (CPU)';
+            updateAiSettingsVisibility(); // recursive call to settle state
+            return;
+        }
     }
 
     // Disable models not supporting image-to-image task (like FLUX.1-schnell served by nscale)
@@ -1414,9 +1428,12 @@ if (aiStylePreset) {
         };
 
         // Make sure engine is set to local to use these specific local models
-        const modeBtn = document.querySelector('.ai-mode-btn[data-mode="img2img"]');
-        if (modeBtn && !modeBtn.classList.contains('active')) {
-            modeBtn.click(); // Switch to Img2Img mode automatically for best styling of existing photos
+        const img2imgBtn = document.querySelector('.ai-mode-btn[data-mode="img2img"]');
+        const cannyBtn = document.querySelector('.ai-mode-btn[data-mode="controlnet_canny"]');
+        
+        // If not in img2img or canny, switch to img2img
+        if (currentAiMode !== 'img2img' && currentAiMode !== 'controlnet_canny') {
+            if (img2imgBtn) img2imgBtn.click();
         }
 
         switch (val) {
@@ -1533,7 +1550,7 @@ if (aiGenerateBtn) {
                 formData.append('image', blob, 'doodle.png');
                 sendAiRequest(formData, resetBtnState);
             }, 'image/png');
-        } else if (currentAiMode === 'img2img') {
+        } else if (currentAiMode === 'img2img' || currentAiMode === 'controlnet_canny') {
             if (!refUpload.files || !refUpload.files[0]) {
                 alert("Please upload a reference picture first!");
                 resetBtnState();

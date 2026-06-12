@@ -4,6 +4,7 @@ import json
 import numpy as np
 import random
 import io
+import cv2
 from PIL import Image, ImageOps
 from diffusers import (
     StableDiffusionPipeline, 
@@ -105,6 +106,7 @@ class EpaperAIGenerator:
         self.device = "cpu"
         self.model_id = "Lykon/dreamshaper-8"
         self.controlnet_id = "lllyasviel/sd-controlnet-scribble"
+        self.controlnet_canny_id = "lllyasviel/sd-controlnet-canny"
         
         # Models path setting
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -123,8 +125,10 @@ class EpaperAIGenerator:
         # Local Pipelines (lazy-loaded)
         self.pipe_txt2img = None
         self.pipe_scribble = None
+        self.pipe_canny = None
         self.pipe_img2img = None
         self.controlnet = None
+        self.controlnet_canny = None
         
         # Load Hugging Face token from config.json
         self.hf_token = ""
@@ -195,6 +199,37 @@ class EpaperAIGenerator:
             self.pipe_scribble.enable_attention_slicing()
         return self.pipe_scribble
 
+    def _init_canny(self):
+        """Initialize ControlNet Canny pipeline by sharing weights (local CPU)."""
+        if self.pipe_canny is None:
+            self.current_status = "loading_local_canny"
+            self.current_message = "Loading local ControlNet Canny module (first loading takes time)..."
+            base = self._init_txt2img()
+            print("Loading ControlNet Canny model...")
+            self.controlnet_canny = ControlNetModel.from_pretrained(
+                self.controlnet_canny_id,
+                torch_dtype=torch.float32,
+                cache_dir=self.cache_dir
+            ).to(self.device)
+            
+            self.current_status = "initializing_local_canny"
+            self.current_message = "Initializing local Canny pipeline..."
+            print("Initializing ControlNet Canny pipeline (sharing weights)...")
+            self.pipe_canny = StableDiffusionControlNetPipeline(
+                vae=base.vae,
+                text_encoder=base.text_encoder,
+                tokenizer=base.tokenizer,
+                unet=base.unet,
+                controlnet=self.controlnet_canny,
+                scheduler=base.scheduler,
+                safety_checker=None,
+                feature_extractor=None,
+                requires_safety_checker=False
+            ).to(self.device)
+            self.pipe_canny.enable_attention_slicing()
+        return self.pipe_canny
+
+
     def _init_img2img(self):
         """Initialize local Stable Diffusion Image-to-Image pipeline by sharing weights (local CPU)."""
         if self.pipe_img2img is None:
@@ -220,8 +255,10 @@ class EpaperAIGenerator:
         print("Unloading PyTorch pipelines to free RAM...")
         self.pipe_txt2img = None
         self.pipe_scribble = None
+        self.pipe_canny = None
         self.pipe_img2img = None
         self.controlnet = None
+        self.controlnet_canny = None
         
         import gc
         gc.collect()
@@ -446,8 +483,8 @@ class EpaperAIGenerator:
                 self.current_message = ""
                 
         if engine == "local":
-            if mode not in ["scribble", "img2img"]:
-                raise ValueError("Local generation is only supported for 'scribble' and 'img2img' modes on this branch.")
+            if mode not in ["scribble", "img2img", "controlnet_canny"]:
+                raise ValueError("Local generation is only supported for 'scribble', 'img2img' and 'controlnet_canny' modes on this branch.")
                 
             if input_image is None:
                 raise ValueError(f"Input image is required for {mode} mode")
@@ -489,6 +526,51 @@ class EpaperAIGenerator:
                         num_inference_steps=steps,
                         generator=generator,
                         callback_on_step_end=scribble_step_end
+                    )
+                    return result.images[0]
+                    
+                elif mode == "controlnet_canny":
+                    pipe = self._init_canny()
+                    
+                    width = 512
+                    height = 512
+                    
+                    # Convert to numpy and extract edges
+                    image_arr = np.array(input_image.convert("RGB").resize((width, height), Image.Resampling.LANCZOS))
+                    image_gray = cv2.cvtColor(image_arr, cv2.COLOR_RGB2GRAY)
+                    
+                    # Apply Canny Edge Detection
+                    edges = cv2.Canny(image_gray, 100, 200)
+                    
+                    # Expand dims to make it 3 channels again
+                    edges = edges[:, :, None]
+                    edges = np.concatenate([edges, edges, edges], axis=2)
+                    
+                    canny_image = Image.fromarray(edges)
+                    
+                    if seed == -1:
+                        generator = None
+                    else:
+                        generator = torch.Generator(device=self.device).manual_seed(seed)
+                        
+                    self.current_status = "generating"
+                    self.current_message = "Local AI drawing image... Step 0/{} (using ControlNet Canny CPU, estimated 8~15 minutes)...".format(steps)
+                    
+                    actual_total = steps
+                    def canny_step_end(pipe, step: int, timestep: int, callback_kwargs: dict):
+                        display_step = min(step + 1, actual_total)
+                        self.current_progress = int((display_step / actual_total) * 100)
+                        self.current_message = f"Local AI drawing image... Step {display_step}/{actual_total} (using ControlNet Canny CPU, estimated 8~15 minutes)..."
+                        print(f"[Local AI Canny Progress] Step {display_step}/{actual_total} ({self.current_progress}%)")
+                        return callback_kwargs
+
+                    result = pipe(
+                        prompt=prompt,
+                        negative_prompt=negative_prompt,
+                        image=canny_image,
+                        num_inference_steps=steps,
+                        generator=generator,
+                        callback_on_step_end=canny_step_end
                     )
                     return result.images[0]
                     

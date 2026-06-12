@@ -82,6 +82,8 @@ try:
     StableDiffusionPipeline.from_pretrained('nitrosocke/Ghibli-Diffusion', safety_checker=None, requires_safety_checker=False, cache_dir='models')
     print('Downloading ControlNet Scribble model...')
     ControlNetModel.from_pretrained('lllyasviel/sd-controlnet-scribble', cache_dir='models')
+    print('Downloading ControlNet Canny model...')
+    ControlNetModel.from_pretrained('lllyasviel/sd-controlnet-canny', cache_dir='models')
     print('All local models downloaded successfully!')
 except Exception as e:
     print('[ERROR] Model download failed:', e)

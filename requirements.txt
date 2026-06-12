@@ -10,3 +10,5 @@ accelerate
 deep-translator
 huggingface_hub
 requests
+opencv-python-headless
+numpy
