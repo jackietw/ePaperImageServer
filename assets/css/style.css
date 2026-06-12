@@ -541,4 +541,14 @@ button {
 /* Spinner Animation */
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+/* Sticky Footer */
+footer {
+    margin-top: auto;
+    width: 100%;
+    text-align: center;
+    padding: 30px 10px 20px 10px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
 }

@@ -21,6 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileMenuBtn.addEventListener('click', () => {
             mainNav.classList.toggle('show');
         });
+        
+        // Close mobile menu when clicking navigation links/buttons
+        mainNav.querySelectorAll('a, button').forEach(link => {
+            link.addEventListener('click', () => {
+                mainNav.classList.remove('show');
+            });
+        });
     }
 
     let fileToDelete = null;

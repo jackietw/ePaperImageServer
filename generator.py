@@ -133,6 +133,7 @@ class EpaperAIGenerator:
         # Real-time Status Tracking
         self.current_status = "idle"
         self.current_message = ""
+        self.current_progress = 0
   
     def load_config(self):
         """Load configuration from config.json if it exists."""
@@ -445,6 +446,7 @@ class EpaperAIGenerator:
                 raise ValueError(f"Input image is required for {mode} mode")
                 
             try:
+                self.current_progress = 0
                 if mode == "scribble":
                     pipe = self._init_scribble()
                     
@@ -463,14 +465,23 @@ class EpaperAIGenerator:
                         generator = torch.Generator(device=self.device).manual_seed(seed)
                     
                     self.current_status = "generating"
-                    self.current_message = "Local AI drawing image (using ControlNet CPU, estimated 5~15 minutes)..."
+                    self.current_message = "Local AI drawing image... Step 0/{} (using ControlNet CPU, estimated 5~15 minutes)...".format(steps)
                     
+                    actual_total = steps
+                    def progress_callback(step: int, timestep: int, latents: torch.FloatTensor):
+                        display_step = min(step + 1, actual_total)
+                        self.current_progress = int((display_step / actual_total) * 100)
+                        self.current_message = f"Local AI drawing image... Step {display_step}/{actual_total} (using ControlNet CPU, estimated 5~15 minutes)..."
+                        print(f"[Local AI Scribble Progress] Step {display_step}/{actual_total} ({self.current_progress}%)")
+
                     result = pipe(
                         prompt=prompt,
                         negative_prompt=negative_prompt,
                         image=doodle,
                         num_inference_steps=steps,
-                        generator=generator
+                        generator=generator,
+                        callback=progress_callback,
+                        callback_steps=1
                     )
                     return result.images[0]
                     
@@ -487,16 +498,25 @@ class EpaperAIGenerator:
                     else:
                         generator = torch.Generator(device=self.device).manual_seed(seed)
                         
+                    actual_total = max(1, int(steps * strength))
                     self.current_status = "generating"
-                    self.current_message = "Local AI drawing image (using SD 1.5 CPU, estimated 5~10 minutes)..."
+                    self.current_message = "Local AI drawing image... Step 0/{} (using SD 1.5 CPU, estimated 5~10 minutes)...".format(actual_total)
                     
+                    def progress_callback(step: int, timestep: int, latents: torch.FloatTensor):
+                        display_step = min(step + 1, actual_total)
+                        self.current_progress = int((display_step / actual_total) * 100)
+                        self.current_message = f"Local AI drawing image... Step {display_step}/{actual_total} (using SD 1.5 CPU, estimated 5~10 minutes)..."
+                        print(f"[Local AI Img2Img Progress] Step {display_step}/{actual_total} ({self.current_progress}%)")
+
                     result = pipe(
                         prompt=prompt,
                         negative_prompt=negative_prompt,
                         image=ref_image,
                         strength=strength,
                         num_inference_steps=steps,
-                        generator=generator
+                        generator=generator,
+                        callback=progress_callback,
+                        callback_steps=1
                     )
                     return result.images[0]
             finally:
@@ -504,6 +524,7 @@ class EpaperAIGenerator:
                 self.unload_pytorch()
                 self.current_status = "idle"
                 self.current_message = ""
+                self.current_progress = 0
 
 # Singleton generator instance
 ai_generator = EpaperAIGenerator()

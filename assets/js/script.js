@@ -31,6 +31,13 @@ if (mobileMenuBtn && mainNav) {
     mobileMenuBtn.addEventListener('click', () => {
         mainNav.classList.toggle('show');
     });
+    
+    // Close mobile menu when clicking navigation links/buttons
+    mainNav.querySelectorAll('a, button').forEach(link => {
+        link.addEventListener('click', () => {
+            mainNav.classList.remove('show');
+        });
+    });
 }
 
 // E-Paper Palette (Black, White, Green, Blue, Red, Yellow)
@@ -1444,18 +1451,38 @@ if (aiGenerateBtn) {
 
 function sendAiRequest(formData, onComplete) {
     const aiLoadingMsg = document.getElementById('ai-loading-msg');
+    const aiProgressContainer = document.getElementById('ai-progress-container');
+    const aiProgressBar = document.getElementById('ai-progress-bar');
     const defaultMsg = "Processing request. Please wait...";
     
     if (aiLoadingOverlay) aiLoadingOverlay.classList.remove('hidden');
     if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
+    
+    // Manage progress bar display
+    const isLocal = formData.get('engine') === 'local';
+    if (aiProgressContainer) {
+        if (isLocal) {
+            aiProgressContainer.classList.remove('hidden');
+        } else {
+            aiProgressContainer.classList.add('hidden');
+        }
+    }
+    if (aiProgressBar) {
+        aiProgressBar.style.width = '0%';
+    }
     
     // Start polling status
     let pollInterval = setInterval(() => {
         fetch('/api/generation_status')
             .then(res => res.json())
             .then(data => {
-                if (data && data.message && aiLoadingMsg) {
-                    aiLoadingMsg.textContent = data.message;
+                if (data) {
+                    if (data.message && aiLoadingMsg) {
+                        aiLoadingMsg.textContent = data.message;
+                    }
+                    if (data.progress !== undefined && aiProgressBar) {
+                        aiProgressBar.style.width = `${data.progress}%`;
+                    }
                 }
             })
             .catch(err => console.error("Error polling generation status:", err));
@@ -1469,6 +1496,9 @@ function sendAiRequest(formData, onComplete) {
         clearInterval(pollInterval);
         if (onComplete) onComplete();
         if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
+        if (aiProgressContainer) aiProgressContainer.classList.add('hidden');
+        if (aiProgressBar) aiProgressBar.style.width = '0%';
+        
         const text = await response.text();
         try {
             return JSON.parse(text);
@@ -1506,6 +1536,9 @@ function sendAiRequest(formData, onComplete) {
         clearInterval(pollInterval);
         if (onComplete) onComplete();
         if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
+        if (aiProgressContainer) aiProgressContainer.classList.add('hidden');
+        if (aiProgressBar) aiProgressBar.style.width = '0%';
+        
         console.error(error);
         if (aiLoadingOverlay) aiLoadingOverlay.classList.add('hidden');
         alert("Error calling server. " + error.message);

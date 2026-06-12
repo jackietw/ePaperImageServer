@@ -175,6 +175,9 @@
                 <div class="spinner" style="width: 50px; height: 50px; border: 5px solid rgba(59, 130, 246, 0.2); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite;"></div>
                 <h3 style="color: var(--text-primary); margin: 0;">Generating Art...</h3>
                 <p id="ai-loading-msg" style="color: var(--text-secondary); margin: 0; font-size: 0.9rem; text-align: center; max-width: 80%;">Processing request. Please wait...</p>
+                <div id="ai-progress-container" class="hidden" style="width: 280px; height: 8px; background: rgba(255, 255, 255, 0.15); border-radius: 4px; overflow: hidden; margin-top: 5px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                    <div id="ai-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); transition: width 0.4s ease; border-radius: 4px;"></div>
+                </div>
             </div>
 
             <div class="editor-section hidden" id="editor-section">
@@ -244,7 +247,7 @@
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <script src="assets/js/script.js?v=5"></script>
     <!-- footer -->
-    <footer style="position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; padding: 10px;">
+    <footer>
         <p>@2026 E-Paper Upload Website by Jackie | Version 1.3</p>
     </footer>
 </body>

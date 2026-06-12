@@ -153,7 +153,8 @@ async def generate_art(
 def get_generation_status():
     return {
         "status": ai_generator.current_status,
-        "message": ai_generator.current_message
+        "message": ai_generator.current_message,
+        "progress": ai_generator.current_progress
     }
 
 @app.get("/api/get_config")
@@ -276,6 +277,7 @@ def consume_pending():
 
 # Serve root HTML files
 @app.get("/")
+@app.get("/index.html")
 def read_index():
     return FileResponse("index.html")
 
