@@ -1380,6 +1380,92 @@ if (aiStrength && aiStrengthVal) {
     });
 }
 
+// ==========================================
+// Easy Mode: Art Style Presets Logic
+// ==========================================
+const aiStylePreset = document.getElementById('ai-style-preset');
+if (aiStylePreset) {
+    aiStylePreset.addEventListener('change', (e) => {
+        const val = e.target.value;
+        const aiLocalModel = document.getElementById('ai-local-model');
+        const aiPrompt = document.getElementById('ai-prompt');
+        const aiNegPrompt = document.getElementById('ai-neg-prompt');
+        const aiSteps = document.getElementById('ai-steps');
+        const aiStepsVal = document.getElementById('ai-steps-val');
+        const aiStrength = document.getElementById('ai-strength');
+        const aiStrengthVal = document.getElementById('ai-strength-val');
+
+        if (val === 'none') return;
+
+        // Common helper to append suffix safely
+        const appendPrompt = (suffix) => {
+            let current = aiPrompt.value.trim();
+            if (current && !current.endsWith(',')) current += ', ';
+            else if (current) current += ' ';
+            aiPrompt.value = current + suffix;
+        };
+
+        // Make sure engine is set to local to use these specific local models
+        const modeBtn = document.querySelector('.ai-mode-btn[data-mode="img2img"]');
+        if (modeBtn && !modeBtn.classList.contains('active')) {
+            modeBtn.click(); // Switch to Img2Img mode automatically for best styling of existing photos
+        }
+
+        switch (val) {
+            case 'ghibli_portrait':
+                if (aiLocalModel) aiLocalModel.value = 'Meina/MeinaMix_V11';
+                aiStrength.value = 0.45;
+                aiSteps.value = 35;
+                appendPrompt('masterpiece, best quality, studio ghibli style, anime style');
+                aiNegPrompt.value = 'ugly, deformed, bad anatomy, bad faces, realistic, monster, 3d, text, watermark';
+                break;
+            case 'ghibli_scenery':
+                if (aiLocalModel) aiLocalModel.value = 'nitrosocke/Ghibli-Diffusion';
+                aiStrength.value = 0.65;
+                aiSteps.value = 30;
+                appendPrompt('ghibli style, masterpiece, beautiful landscape');
+                aiNegPrompt.value = 'ugly, blurry, people, realistic, bad anatomy, text';
+                break;
+            case 'modern_anime':
+                if (aiLocalModel) aiLocalModel.value = 'Meina/MeinaMix_V11';
+                aiStrength.value = 0.55;
+                aiSteps.value = 25;
+                appendPrompt('masterpiece, best quality, highly detailed, modern anime style, dynamic lighting');
+                aiNegPrompt.value = 'ugly, deformed, bad anatomy, realistic, worst quality, low quality, text';
+                break;
+            case 'demon_slayer':
+                if (aiLocalModel) aiLocalModel.value = 'Meina/MeinaMix_V11';
+                aiStrength.value = 0.55;
+                aiSteps.value = 30;
+                appendPrompt('masterpiece, kimetsu no yaiba, demon slayer style, ufotable, dynamic lighting, anime style');
+                aiNegPrompt.value = 'ugly, deformed, bad anatomy, realistic, 3d, photograph';
+                break;
+            case 'bw_manga':
+                if (aiLocalModel) aiLocalModel.value = 'stablediffusionapi/anything-v5';
+                aiStrength.value = 0.60;
+                aiSteps.value = 25;
+                appendPrompt('masterpiece, monochrome, greyscale, manga style, lineart, screentone, high contrast');
+                aiNegPrompt.value = 'color, colorful, realistic, 3d, photograph, blurry, bad anatomy';
+                break;
+            case 'chibi':
+                if (aiLocalModel) aiLocalModel.value = 'stablediffusionapi/anything-v5';
+                aiStrength.value = 0.65;
+                aiSteps.value = 30;
+                appendPrompt('masterpiece, chibi, super deformed, cute, big eyes, simple background, kawaii');
+                aiNegPrompt.value = 'realistic, tall, normal proportions, adult, complex, detailed face, 3d';
+                break;
+        }
+
+        // Update UI displays
+        if (aiStepsVal) aiStepsVal.textContent = aiSteps.value;
+        if (aiStrengthVal) aiStrengthVal.textContent = aiStrength.value;
+        
+        // Brief visual feedback that settings were applied
+        aiStylePreset.style.backgroundColor = '#dcfce7';
+        setTimeout(() => aiStylePreset.style.backgroundColor = '', 500);
+    });
+}
+
 // Generation Submission Handlers
 const aiGenerateBtn = document.getElementById('ai-generate-btn');
 const aiPromptInput = document.getElementById('ai-prompt');

@@ -137,6 +137,24 @@
                             </div>
                         </div>
 
+                        <!-- Easy Mode Style Preset -->
+                        <div class="control-group" id="ai-style-preset-group">
+                            <label for="ai-style-preset" style="color: var(--primary-color); font-weight: bold;">✨ Art Style (Easy Mode) 一鍵畫風懶人包</label>
+                            <select id="ai-style-preset" class="styled-select" style="border-color: var(--primary-color);">
+                                <option value="none" selected>None (手動自由設定)</option>
+                                <optgroup label="經典宮崎駿 (Studio Ghibli)">
+                                    <option value="ghibli_portrait">吉卜力經典畫風 (適合人像自拍)</option>
+                                    <option value="ghibli_scenery">吉卜力風景畫 (適合風景/背景)</option>
+                                </optgroup>
+                                <optgroup label="動漫畫風 (Anime Styles)">
+                                    <option value="modern_anime">現代精緻動漫風 (Modern Anime)</option>
+                                    <option value="demon_slayer">鬼滅之刃風格 (Demon Slayer)</option>
+                                    <option value="bw_manga">黑白漫畫/線稿 (B&W Manga)</option>
+                                    <option value="chibi">Q版可愛風格 (Chibi / Cute)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
                         <!-- Prompt Input -->
                         <div class="control-group">
                             <label for="ai-prompt">Positive Prompt</label>
