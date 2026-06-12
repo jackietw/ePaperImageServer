@@ -9,3 +9,4 @@ processed/
 # exclude submodules' compilation caches/temporaries
 /XNNPACK/build/
 /OnnxStream/src/build/
+/__pycache__/

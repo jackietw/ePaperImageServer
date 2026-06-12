@@ -83,12 +83,16 @@
                         <!-- Prompt Input -->
                         <div class="control-group">
                             <label for="ai-prompt">Positive Prompt</label>
-                            <textarea id="ai-prompt" class="styled-textarea" placeholder="Describe the art you want to generate... (e.g., A fantasy forest with glowing mushrooms, oil painting)" rows="3"></textarea>
+                            <textarea id="ai-prompt" class="styled-textarea"
+                                placeholder="Describe the art you want to generate... (e.g., A fantasy forest with glowing mushrooms, oil painting)"
+                                rows="3"></textarea>
                         </div>
 
                         <div class="control-group">
                             <label for="ai-neg-prompt">Negative Prompt (Optional)</label>
-                            <textarea id="ai-neg-prompt" class="styled-textarea" placeholder="What to avoid in the image... (e.g., blurry, ugly, low quality)" rows="2"></textarea>
+                            <textarea id="ai-neg-prompt" class="styled-textarea"
+                                placeholder="What to avoid in the image... (e.g., blurry, ugly, low quality)"
+                                rows="2"></textarea>
                         </div>
 
                         <!-- Doodle Canvas (only visible in scribble mode) -->
@@ -99,22 +103,27 @@
                                 <div class="doodle-toolbar">
                                     <div class="brush-size-group">
                                         <label for="brush-size">Brush Size: <span id="brush-size-val">8</span>px</label>
-                                        <input type="range" id="brush-size" min="2" max="30" value="8" style="width: 120px;">
+                                        <input type="range" id="brush-size" min="2" max="30" value="8"
+                                            style="width: 120px;">
                                     </div>
-                                    <button type="button" id="doodle-clear-btn" class="icon-btn danger-btn" style="padding: 6px 12px; font-size: 0.8rem; flex: none;">Clear Canvas</button>
+                                    <button type="button" id="doodle-clear-btn" class="icon-btn danger-btn"
+                                        style="padding: 6px 12px; font-size: 0.8rem; flex: none;">Clear Canvas</button>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Reference Image Input (only visible in img2img mode) -->
                         <div id="ai-ref-container" class="control-group hidden">
-                            <label for="ai-ref-upload" class="upload-label" style="border: 1px dashed var(--glass-border); padding: 20px; border-radius: 8px; cursor: pointer;">
+                            <label for="ai-ref-upload" class="upload-label"
+                                style="border: 1px dashed var(--glass-border); padding: 20px; border-radius: 8px; cursor: pointer;">
                                 <div class="upload-icon" style="font-size: 1.5rem;">🖼️</div>
                                 <span id="ai-ref-text">Choose Reference Image</span>
                             </label>
                             <input type="file" id="ai-ref-upload" accept="image/*" hidden>
-                            <div id="ai-ref-preview-container" class="hidden" style="margin-top: 10px; text-align: center;">
-                                <img id="ai-ref-preview" src="" alt="Reference Preview" style="max-height: 200px; border-radius: 8px; border: 1px solid var(--glass-border);">
+                            <div id="ai-ref-preview-container" class="hidden"
+                                style="margin-top: 10px; text-align: center;">
+                                <img id="ai-ref-preview" src="" alt="Reference Preview"
+                                    style="max-height: 200px; border-radius: 8px; border: 1px solid var(--glass-border);">
                             </div>
                         </div>
 
@@ -122,7 +131,7 @@
                         <div class="ai-settings-grid">
                             <div class="control-group">
                                 <label for="ai-steps">Steps: <span id="ai-steps-val">20</span></label>
-                                <input type="range" id="ai-steps" min="5" max="50" value="20">
+                                <input type="range" id="ai-steps" min="1" max="5" value="4">
                             </div>
                             <div class="control-group hidden" id="ai-strength-group">
                                 <label for="ai-strength">Image Influence: <span id="ai-strength-val">0.75</span></label>
@@ -134,16 +143,21 @@
                             </div>
                         </div>
 
-                        <button id="ai-generate-btn" class="primary-btn" style="margin-top: 15px; width: 100%;">Generate Art</button>
+                        <button id="ai-generate-btn" class="primary-btn" style="margin-top: 15px; width: 100%;">Generate
+                            Art</button>
                     </div>
                 </div>
             </div>
 
             <!-- Loading Spinner Overlay -->
-            <div id="ai-loading-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
-                <div class="spinner" style="width: 50px; height: 50px; border: 5px solid rgba(59, 130, 246, 0.2); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <div id="ai-loading-overlay" class="hidden"
+                style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
+                <div class="spinner"
+                    style="width: 50px; height: 50px; border: 5px solid rgba(59, 130, 246, 0.2); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite;">
+                </div>
                 <h3 style="color: var(--text-primary); margin: 0;">Generating Art...</h3>
-                <p id="ai-loading-msg" style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">This may take 1 to 3 minutes on OCI ARM CPU. Please wait...</p>
+                <p id="ai-loading-msg" style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">This may take
+                    1 to 3 minutes on OCI ARM CPU. Please wait...</p>
             </div>
 
             <div class="editor-section hidden" id="editor-section">
@@ -216,7 +230,7 @@
     <script src="assets/js/script.js?v=5"></script>
     <!-- footer -->
     <footer style="position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; padding: 10px;">
-        <p>@2026 E-Paper Upload Website by Jackie | Version 1.2</p>
+        <p>@2026 E-Paper Upload Website by Jackie | Version 2Beta</p>
     </footer>
 </body>
 
