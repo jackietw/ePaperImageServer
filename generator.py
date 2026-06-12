@@ -241,7 +241,7 @@ class EpaperAIGenerator:
                         print("huggingface_hub StopIteration detected. Falling back to direct HTTP API call...")
                         import requests
                         
-                        api_url = f"https://api-inference.huggingface.co/models/{cloud_model}"
+                        api_url = f"https://router.huggingface.co/hf-inference/models/{cloud_model}"
                         headers = {
                             "Authorization": f"Bearer {token}",
                             "Content-Type": "application/json"
@@ -317,7 +317,7 @@ class EpaperAIGenerator:
                         import requests
                         import base64
                         
-                        api_url = f"https://api-inference.huggingface.co/models/{cloud_model}"
+                        api_url = f"https://router.huggingface.co/hf-inference/models/{cloud_model}"
                         headers = {
                             "Authorization": f"Bearer {token}",
                             "Content-Type": "application/json"
