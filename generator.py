@@ -475,11 +475,12 @@ class EpaperAIGenerator:
                     self.current_message = "Local AI drawing image... Step 0/{} (using ControlNet CPU, estimated 5~15 minutes)...".format(steps)
                     
                     actual_total = steps
-                    def progress_callback(step: int, timestep: int, latents: torch.FloatTensor):
+                    def scribble_step_end(pipe, step: int, timestep: int, callback_kwargs: dict):
                         display_step = min(step + 1, actual_total)
                         self.current_progress = int((display_step / actual_total) * 100)
                         self.current_message = f"Local AI drawing image... Step {display_step}/{actual_total} (using ControlNet CPU, estimated 5~15 minutes)..."
                         print(f"[Local AI Scribble Progress] Step {display_step}/{actual_total} ({self.current_progress}%)")
+                        return callback_kwargs
 
                     result = pipe(
                         prompt=prompt,
@@ -487,8 +488,7 @@ class EpaperAIGenerator:
                         image=doodle,
                         num_inference_steps=steps,
                         generator=generator,
-                        callback=progress_callback,
-                        callback_steps=1
+                        callback_on_step_end=scribble_step_end
                     )
                     return result.images[0]
                     
@@ -509,11 +509,12 @@ class EpaperAIGenerator:
                     self.current_status = "generating"
                     self.current_message = "Local AI drawing image... Step 0/{} (using SD 1.5 CPU, estimated 5~10 minutes)...".format(actual_total)
                     
-                    def progress_callback(step: int, timestep: int, latents: torch.FloatTensor):
+                    def img2img_step_end(pipe, step: int, timestep: int, callback_kwargs: dict):
                         display_step = min(step + 1, actual_total)
                         self.current_progress = int((display_step / actual_total) * 100)
                         self.current_message = f"Local AI drawing image... Step {display_step}/{actual_total} (using SD 1.5 CPU, estimated 5~10 minutes)..."
                         print(f"[Local AI Img2Img Progress] Step {display_step}/{actual_total} ({self.current_progress}%)")
+                        return callback_kwargs
 
                     result = pipe(
                         prompt=prompt,
@@ -522,8 +523,7 @@ class EpaperAIGenerator:
                         strength=strength,
                         num_inference_steps=steps,
                         generator=generator,
-                        callback=progress_callback,
-                        callback_steps=1
+                        callback_on_step_end=img2img_step_end
                     )
                     return result.images[0]
             finally:
