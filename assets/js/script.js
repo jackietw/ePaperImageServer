@@ -379,6 +379,14 @@ restartBtn.addEventListener('click', () => {
 
     // Clear file input
     imageUpload.value = '';
+    
+    // Hide AI download button on restart
+    const aiDownloadBtn = document.getElementById('ai-download-btn');
+    if (aiDownloadBtn) {
+        aiDownloadBtn.style.display = 'none';
+        aiDownloadBtn.classList.add('hidden');
+        aiDownloadBtn.href = '';
+    }
 
     // Reset slider values
     saturationSlider.value = 0;
@@ -1618,6 +1626,17 @@ function sendAiRequest(formData, onComplete) {
             
             // Automatically initialize cropping and layout
             initCropper();
+            
+            // Show Download AI Image button with correct download link
+            const aiDownloadBtn = document.getElementById('ai-download-btn');
+            if (aiDownloadBtn) {
+                aiDownloadBtn.href = data.image;
+                // Derive a sensible filename from the prompt
+                const safePrompt = (aiPromptInput.value.trim().substring(0, 30) || 'ai_art').replace(/[^a-z0-9]/gi, '_');
+                aiDownloadBtn.download = `${safePrompt}_${Date.now()}.png`;
+                aiDownloadBtn.style.display = '';
+                aiDownloadBtn.classList.remove('hidden');
+            }
         } else {
             alert("AI Generation failed: " + data.message);
         }
