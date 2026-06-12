@@ -1126,6 +1126,19 @@ function updateAiSettingsVisibility() {
         aiStrengthGroup.classList.remove('hidden');
         aiNegPromptGroup.classList.remove('hidden');
     }
+
+    // Disable models not supporting image-to-image task (like FLUX.1-schnell served by nscale)
+    const fluxOption = aiCloudModel.querySelector('option[value="black-forest-labs/FLUX.1-schnell"]');
+    if (fluxOption) {
+        if (mode === 'img2img') {
+            fluxOption.disabled = true;
+            if (aiCloudModel.value === 'black-forest-labs/FLUX.1-schnell') {
+                aiCloudModel.value = 'Lykon/dreamshaper-xl-v2-turbo';
+            }
+        } else {
+            fluxOption.disabled = false;
+        }
+    }
     
     // Engine specific steps adjustment
     if (engine === 'cloud') {

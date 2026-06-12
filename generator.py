@@ -269,8 +269,28 @@ class EpaperAIGenerator:
                     print("Scribble mode detected in Cloud engine selection. Falling back to local CPU engine.")
                     engine = "local"
             except Exception as e:
-                print(f"Cloud API generation failed: {e}")
-                raise RuntimeError(f"Cloud API failed: {str(e)}. Please check if your Token is valid, the model is available, or if you hit rate limits.")
+                import traceback
+                traceback.print_exc()
+                
+                # Try to extract the most descriptive error message
+                err_msg = ""
+                if hasattr(e, "server_message") and e.server_message:
+                    err_msg = e.server_message
+                elif hasattr(e, "response") and e.response is not None:
+                    try:
+                        err_json = e.response.json()
+                        if isinstance(err_json, dict):
+                            err_msg = err_json.get("error", "") or err_json.get("message", "")
+                    except Exception:
+                        pass
+                    if not err_msg:
+                        err_msg = e.response.text
+                
+                if not err_msg:
+                    err_msg = str(e) or repr(e)
+                
+                print(f"Cloud API generation failed: {err_msg}")
+                raise RuntimeError(f"Cloud API failed: {err_msg}. Please check if your Token is valid, the model is available, or if you hit rate limits.")
             finally:
                 self.current_status = "idle"
                 self.current_message = ""
