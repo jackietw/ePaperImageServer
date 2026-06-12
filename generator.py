@@ -80,11 +80,30 @@ def translate_to_english_if_needed(text: str) -> str:
         print("Translation failed, using original prompt:", e)
         return text
 
+def clean_conversational_prompt(text: str) -> str:
+    if not text:
+        return text
+    import re
+    # Strip conversational prefixes (case-insensitive)
+    patterns = [
+        r"^(please\s+)?(help\s+me\s+)?(change|modify|turn|transform|make|replace)\s+(it|the\s+scene|the\s+image|this|scene|background)\s+(to|into|with)\s+",
+        r"^(please\s+)?(help\s+me\s+)?(change|modify|turn|transform|make|replace)\s+(to|into|with)\s+",
+        r"^(please\s+)?(help\s+me\s+)?(generate|draw|paint|create)\s+(a|an|the)?\s*"
+    ]
+    cleaned = text
+    for pattern in patterns:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+    
+    # Capitalize the first letter if it is lowercase
+    if cleaned and cleaned[0].islower():
+        cleaned = cleaned[0].upper() + cleaned[1:]
+    return cleaned.strip()
+
 
 class EpaperAIGenerator:
     def __init__(self):
         self.device = "cpu"
-        self.model_id = "runwayml/stable-diffusion-v1-5"
+        self.model_id = "Lykon/dreamshaper-8"
         self.controlnet_id = "lllyasviel/sd-controlnet-scribble"
         
         # Models path setting
@@ -227,6 +246,10 @@ class EpaperAIGenerator:
         # Translate CJK characters
         prompt = translate_to_english_if_needed(prompt)
         negative_prompt = translate_to_english_if_needed(negative_prompt)
+        
+        # Clean conversational noise
+        prompt = clean_conversational_prompt(prompt)
+        negative_prompt = clean_conversational_prompt(negative_prompt)
         
         print(f"Generating image. Engine: {engine}, Mode: {mode}, Prompt: '{prompt}', Model: {cloud_model if engine=='cloud' else 'local'}")
         

@@ -56,12 +56,12 @@ echo "==================================================="
 echo "[3/3] Pre-downloading Local PyTorch Models (for Scribble)..."
 echo "==================================================="
 
-echo "Downloading SD 1.5 base and ControlNet Scribble models..."
+echo "Downloading DreamShaper 8 and ControlNet Scribble models..."
 python3 -c "
 try:
     from diffusers import StableDiffusionPipeline, ControlNetModel
-    print('Downloading SD 1.5 base model...')
-    StableDiffusionPipeline.from_pretrained('runwayml/stable-diffusion-v1-5', safety_checker=None, requires_safety_checker=False, cache_dir='models')
+    print('Downloading DreamShaper 8 model...')
+    StableDiffusionPipeline.from_pretrained('Lykon/dreamshaper-8', safety_checker=None, requires_safety_checker=False, cache_dir='models')
     print('Downloading ControlNet Scribble model...')
     ControlNetModel.from_pretrained('lllyasviel/sd-controlnet-scribble', cache_dir='models')
     print('All local models downloaded successfully!')
