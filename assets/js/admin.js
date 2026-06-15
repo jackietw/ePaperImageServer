@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileMenuBtn.addEventListener('click', () => {
             mainNav.classList.toggle('show');
         });
-        
+
         // Close mobile menu when clicking navigation links/buttons
         mainNav.querySelectorAll('a, button').forEach(link => {
             link.addEventListener('click', () => {
@@ -133,14 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const setLatestBtn = document.createElement('button');
         setLatestBtn.className = 'set-latest-btn';
-        setLatestBtn.textContent = 'Set as Display';
+        setLatestBtn.textContent = '🖼️';
         setLatestBtn.addEventListener('click', () => {
             setAsLatest(image.name);
         });
 
         const delBtn = document.createElement('button');
         delBtn.className = 'delete-btn';
-        delBtn.textContent = 'Delete';
+        delBtn.textContent = '🗑️';
         delBtn.addEventListener('click', () => {
             openConfirmModal(image.name);
         });

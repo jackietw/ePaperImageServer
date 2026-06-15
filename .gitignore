@@ -5,3 +5,4 @@ models/
 venv/
 __pycache__/
 generated/
+temp_uploads/

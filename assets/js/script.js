@@ -1183,6 +1183,25 @@ function updateAiSettingsVisibility() {
         }
     }
 
+    // Hide model selection if a preset is selected
+    const stylePreset = document.getElementById('ai-style-preset');
+    const cloudModelGroup = aiCloudModel ? aiCloudModel.parentElement : null;
+    const localModelGroup = document.getElementById('ai-local-model') ? document.getElementById('ai-local-model').parentElement : null;
+    
+    if (mode === 'filter') {
+        // Filter handles its own model visibility
+    } else {
+        const isCustom = !stylePreset || stylePreset.value === 'none';
+        if (cloudModelGroup) {
+            if (isCustom) cloudModelGroup.classList.remove('hidden');
+            else cloudModelGroup.classList.add('hidden');
+        }
+        if (localModelGroup) {
+            if (isCustom) localModelGroup.classList.remove('hidden');
+            else localModelGroup.classList.add('hidden');
+        }
+    }
+
     // Disable models not supporting image-to-image task (like FLUX.1-schnell served by nscale)
     const fluxOption = aiCloudModel.querySelector('option[value="black-forest-labs/FLUX.1-schnell"]');
     if (fluxOption) {
@@ -1445,6 +1464,8 @@ if (aiStylePreset) {
         const aiStepsVal = document.getElementById('ai-steps-val');
         const aiStrength = document.getElementById('ai-strength');
         const aiStrengthVal = document.getElementById('ai-strength-val');
+
+        updateAiSettingsVisibility(); // Ensure UI reflects Custom mode selection
 
         if (val === 'none') return;
 

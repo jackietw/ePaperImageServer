@@ -86,6 +86,8 @@ try:
     ControlNetModel.from_pretrained('lllyasviel/sd-controlnet-canny', cache_dir='models')
     print('Downloading Realistic Vision V5.1 model...')
     StableDiffusionPipeline.from_pretrained('SG161222/Realistic_Vision_V5.1_noVAE', safety_checker=None, requires_safety_checker=False, cache_dir='models')
+    print('Downloading Disney Pixar Cartoon model...')
+    StableDiffusionPipeline.from_pretrained('stablediffusionapi/disney-pixar-cartoon', safety_checker=None, requires_safety_checker=False, cache_dir='models')
     print('Downloading OpenJourney model...')
     StableDiffusionPipeline.from_pretrained('prompthero/openjourney', safety_checker=None, requires_safety_checker=False, cache_dir='models')
     print('Downloading Stable Diffusion 1.5 base model...')
