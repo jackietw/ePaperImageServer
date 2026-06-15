@@ -138,6 +138,7 @@ class EpaperAIGenerator:
         self.current_status = "idle"
         self.current_message = ""
         self.current_progress = 0
+        self.is_cancelled = False
   
     def load_config(self):
         """Load configuration from config.json if it exists."""
@@ -299,6 +300,7 @@ class EpaperAIGenerator:
         print(f"Generating image. Engine: {engine}, Mode: {mode}, Prompt: '{prompt}', Model: {cloud_model if engine=='cloud' else 'local'}")
         
         self.current_status = "generating"
+        self.is_cancelled = False
         
         if engine == "cloud":
             if not token:
@@ -513,6 +515,9 @@ class EpaperAIGenerator:
                     
                     actual_total = steps
                     def scribble_step_end(pipe, step: int, timestep: int, callback_kwargs: dict):
+                        if self.is_cancelled:
+                            print("Scribble generation cancelled.")
+                            raise InterruptedError("Generation cancelled by user.")
                         display_step = min(step + 1, actual_total)
                         self.current_progress = int((display_step / actual_total) * 100)
                         self.current_message = f"Local AI drawing image... Step {display_step}/{actual_total} (using ControlNet CPU, estimated 5~15 minutes)..."
@@ -558,6 +563,9 @@ class EpaperAIGenerator:
                     
                     actual_total = steps
                     def canny_step_end(pipe, step: int, timestep: int, callback_kwargs: dict):
+                        if self.is_cancelled:
+                            print("Canny generation cancelled.")
+                            raise InterruptedError("Generation cancelled by user.")
                         display_step = min(step + 1, actual_total)
                         self.current_progress = int((display_step / actual_total) * 100)
                         self.current_message = f"Local AI drawing image... Step {display_step}/{actual_total} (using ControlNet Canny CPU, estimated 8~15 minutes)..."
@@ -592,6 +600,9 @@ class EpaperAIGenerator:
                     self.current_message = "Local AI drawing image... Step 0/{} (using SD 1.5 CPU, estimated 5~10 minutes)...".format(actual_total)
                     
                     def img2img_step_end(pipe, step: int, timestep: int, callback_kwargs: dict):
+                        if self.is_cancelled:
+                            print("Img2Img generation cancelled.")
+                            raise InterruptedError("Generation cancelled by user.")
                         display_step = min(step + 1, actual_total)
                         self.current_progress = int((display_step / actual_total) * 100)
                         self.current_message = f"Local AI drawing image... Step {display_step}/{actual_total} (using SD 1.5 CPU, estimated 5~10 minutes)..."

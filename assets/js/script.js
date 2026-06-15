@@ -1565,55 +1565,12 @@ if (aiGenerateBtn) {
 }
 
 function sendAiRequest(formData, onComplete) {
-    const aiLoadingMsg = document.getElementById('ai-loading-msg');
-    const aiProgressContainer = document.getElementById('ai-progress-container');
-    const aiProgressBar = document.getElementById('ai-progress-bar');
-    const defaultMsg = "Processing request. Please wait...";
-    
-    if (aiLoadingOverlay) aiLoadingOverlay.classList.remove('hidden');
-    if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
-    
-    // Manage progress bar display
-    const isLocal = formData.get('engine') === 'local';
-    if (aiProgressContainer) {
-        if (isLocal) {
-            aiProgressContainer.classList.remove('hidden');
-        } else {
-            aiProgressContainer.classList.add('hidden');
-        }
-    }
-    if (aiProgressBar) {
-        aiProgressBar.style.width = '0%';
-    }
-    
-    // Start polling status
-    let pollInterval = setInterval(() => {
-        fetch('/api/generation_status')
-            .then(res => res.json())
-            .then(data => {
-                if (data) {
-                    if (data.message && aiLoadingMsg) {
-                        aiLoadingMsg.textContent = data.message;
-                    }
-                    if (data.progress !== undefined && aiProgressBar) {
-                        aiProgressBar.style.width = `${data.progress}%`;
-                    }
-                }
-            })
-            .catch(err => console.error("Error polling generation status:", err));
-    }, 2000);
-    
-    fetch('/api/generate_art', {
+    fetch('/api/queue_generate', {
         method: 'POST',
         body: formData
     })
     .then(async response => {
-        clearInterval(pollInterval);
         if (onComplete) onComplete();
-        if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
-        if (aiProgressContainer) aiProgressContainer.classList.add('hidden');
-        if (aiProgressBar) aiProgressBar.style.width = '0%';
-        
         const text = await response.text();
         try {
             return JSON.parse(text);
@@ -1623,52 +1580,41 @@ function sendAiRequest(formData, onComplete) {
         }
     })
     .then(data => {
-        if (aiLoadingOverlay) aiLoadingOverlay.classList.add('hidden');
         if (data.success) {
-            // Load generated image into cropping workspace
-            imageWorkspace.src = data.image;
-            
-            // Switch tabs
-            if (aiTabBtn && uploadTabBtn) {
-                aiTabBtn.classList.remove('active');
-                uploadTabBtn.classList.add('active');
-            }
-            
-            // Show Editor Workspace
-            if (aiSection && editorSection) {
-                aiSection.classList.add('hidden');
-                editorSection.classList.remove('hidden');
-                activeUploadPanel = 'editor-section';
-            }
-            
-            // Automatically initialize cropping and layout
-            initCropper();
-            
-            // Show Download AI Image button with correct download link
-            const aiDownloadBtn = document.getElementById('ai-download-btn');
-            if (aiDownloadBtn) {
-                aiDownloadBtn.href = data.image;
-                // Derive a sensible filename from the prompt
-                const safePrompt = (aiPromptInput.value.trim().substring(0, 30) || 'ai_art').replace(/[^a-z0-9]/gi, '_');
-                aiDownloadBtn.download = `${safePrompt}_${Date.now()}.png`;
-                aiDownloadBtn.style.display = '';
-                aiDownloadBtn.classList.remove('hidden');
-            }
+            alert("Image generation task has been added to the queue! You can track its progress in the Queue tab.");
+            window.location.href = "queue.html";
         } else {
-            alert("AI Generation failed: " + data.message);
+            alert("Failed to enqueue task: " + data.message);
         }
     })
     .catch(error => {
-        clearInterval(pollInterval);
         if (onComplete) onComplete();
-        if (aiLoadingMsg) aiLoadingMsg.textContent = defaultMsg;
-        if (aiProgressContainer) aiProgressContainer.classList.add('hidden');
-        if (aiProgressBar) aiProgressBar.style.width = '0%';
-        
         console.error(error);
-        if (aiLoadingOverlay) aiLoadingOverlay.classList.add('hidden');
         alert("Error calling server. " + error.message);
     });
 }
+
+// Handle URL parameters for direct editor loading
+document.addEventListener("DOMContentLoaded", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'editor') {
+        // Load latest.png into editor
+        const cacheBuster = Date.now();
+        const imgObj = new Image();
+        imgObj.onload = function () {
+            autoDetectOrientation(imgObj.naturalWidth, imgObj.naturalHeight);
+            imageWorkspace.src = imgObj.src;
+            uploadSection.classList.add('hidden');
+            if(aiSection) aiSection.classList.add('hidden');
+            editorSection.classList.remove('hidden');
+            activeUploadPanel = 'editor-section';
+            initCropper();
+        };
+        imgObj.onerror = function() {
+            alert("Failed to load image from generated list. Please try again.");
+        };
+        imgObj.src = `processed/latest.png?t=${cacheBuster}`;
+    }
+});
 
 

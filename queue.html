@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generation Queue</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css?v=6">
+    <link rel="stylesheet" href="assets/css/admin.css?v=6">
+    <style>
+        .queue-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            color: var(--text-primary);
+        }
+
+        .task-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        .task-status {
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .status-processing {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .status-pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+
+        .status-completed {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        .status-failed, .status-cancelled {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .task-body {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .task-details {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .task-progress {
+            margin-top: 15px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        @media (max-width: 600px) {
+            header {
+                padding: 0 35px !important;
+                position: relative !important;
+            }
+            header h1 {
+                font-size: 1.35rem !important;
+                padding: 0 35px !important;
+                box-sizing: border-box !important;
+                line-height: 1.25 !important;
+            }
+            .hamburger-menu {
+                display: flex !important;
+                left: 5px !important;
+                top: 6px !important;
+            }
+            .main-nav {
+                left: 5px !important;
+            }
+            footer {
+                position: relative !important;
+                margin-top: 30px !important;
+                padding: 10px 0 !important;
+                background: transparent !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="admin-header" style="position: relative;">
+        <div class="hamburger-menu" id="mobile-menu-btn">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <h1>Generation Queue</h1>
+        <p>Manage and monitor AI generation tasks</p>
+        <nav class="main-nav">
+            <a href="/" class="nav-btn">Generator & Editor</a>
+            <a href="queue.html" class="nav-btn active">Queue</a>
+            <a href="generated_admin.html" class="nav-btn">Generated Library</a>
+            <a href="admin.html" class="nav-btn">Editor Image</a>
+        </nav>
+    </header>
+
+    <main class="queue-container">
+        <h2>Currently Processing</h2>
+        <div id="current-task-container">
+            <div class="empty-message">No task is currently processing.</div>
+        </div>
+
+        <h2 style="margin-top: 40px;">Pending Queue (<span id="pending-count">0</span>)</h2>
+        <div id="pending-tasks-container">
+            <div class="empty-message">Queue is empty.</div>
+        </div>
+
+        <h2 style="margin-top: 40px;">Recent History</h2>
+        <div id="history-tasks-container">
+            <div class="empty-message">No recent history.</div>
+        </div>
+    </main>
+
+    <footer>
+        <p>@2026 E-Paper Upload Website by Jackie | Version 2.0</p>
+    </footer>
+
+    <script src="assets/js/queue.js"></script>
+    <script>
+        // Simple mobile menu toggle
+        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+            document.querySelector('.main-nav').classList.toggle('active');
+            this.classList.toggle('active');
+        });
+    </script>
+</body>
+
+</html>
