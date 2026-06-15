@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const response = await fetch("/api/queue_status");
             const result = await response.json();
-            
+
             if (result.success) {
                 renderCurrentTask(result.current_task);
                 renderPendingTasks(result.pending_tasks);
@@ -25,17 +25,17 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const response = await fetch("/api/server_status");
             const result = await response.json();
-            
+
             if (result.success) {
                 const cpuSpan = document.getElementById("sys-cpu");
                 const ramSpan = document.getElementById("sys-ram");
                 if (cpuSpan && ramSpan) {
                     cpuSpan.textContent = `CPU: ${result.cpu_percent}%`;
                     ramSpan.textContent = `RAM: ${result.mem_percent}% (${result.mem_used_gb}GB/${result.mem_total_gb}GB)`;
-                    
+
                     if (result.cpu_percent > 85) cpuSpan.style.color = "#ef4444";
                     else cpuSpan.style.color = "#cbd5e1";
-                    
+
                     if (result.mem_percent > 85) ramSpan.style.color = "#ef4444";
                     else ramSpan.style.color = "#cbd5e1";
                 }
@@ -88,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderPendingTasks(tasks) {
         pendingCount.textContent = tasks.length;
-        
+
         if (tasks.length === 0) {
             pendingContainer.innerHTML = '<div class="empty-message">Queue is empty.</div>';
             return;
@@ -127,9 +127,9 @@ document.addEventListener("DOMContentLoaded", () => {
         let html = "";
         tasks.forEach(task => {
             const date = new Date(task.timestamp * 1000).toLocaleString();
-            const statusClass = task.status === 'completed' ? 'status-completed' : 
-                               (task.status === 'failed' ? 'status-failed' : 'status-cancelled');
-            
+            const statusClass = task.status === 'completed' ? 'status-completed' :
+                (task.status === 'failed' ? 'status-failed' : 'status-cancelled');
+
             html += `
                 <div class="task-card" style="opacity: 0.7; margin-bottom: 15px; padding: 15px;">
                     <div class="task-header">
@@ -150,9 +150,9 @@ document.addEventListener("DOMContentLoaded", () => {
         historyContainer.innerHTML = html;
     }
 
-    window.cancelTask = async function(taskId) {
+    window.cancelTask = async function (taskId) {
         if (!confirm("Are you sure you want to cancel this task?")) return;
-        
+
         try {
             const response = await fetch("/api/cancel_task", {
                 method: "POST",
@@ -174,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Start polling every second
     setInterval(fetchQueueStatus, 1000);
-    setInterval(fetchServerStatus, 2000);
+    setInterval(fetchServerStatus, 5000);
     fetchQueueStatus();
     fetchServerStatus();
 });

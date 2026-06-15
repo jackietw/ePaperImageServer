@@ -188,8 +188,8 @@ class EpaperAIGenerator:
             
             try:
                 # Load models using PyTorch Hub
-                model = torch.hub.load("bryandlee/animegan2-pytorch:main", "generator", device=device, pretrained=pretrained)
-                face2paint = torch.hub.load("bryandlee/animegan2-pytorch:main", "face2paint", size=512, device=device)
+                model = torch.hub.load("bryandlee/animegan2-pytorch:main", "generator", device=device, pretrained=pretrained, trust_repo=True)
+                face2paint = torch.hub.load("bryandlee/animegan2-pytorch:main", "face2paint", size=512, device=device, trust_repo=True)
                 
                 self.current_message = f"Applying AnimeGANv2 style ({filter_type})..."
                 out = face2paint(model, input_image.convert('RGB'))
