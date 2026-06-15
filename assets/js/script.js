@@ -1116,14 +1116,23 @@ function updateAiSettingsVisibility() {
     const engine = aiEngine.value;
     const mode = currentAiMode;
     const localConfig = document.getElementById('ai-local-config-group');
+    const filterConfig = document.getElementById('ai-filter-config-group');
+    const aiPromptGroup = document.getElementById('ai-prompt-group');
+    const stylePresetGroup = document.getElementById('ai-style-preset-group');
     
     // Toggle Config Groups based on Engine
     if (engine === 'cloud') {
         cloudConfig.classList.remove('hidden');
         if (localConfig) localConfig.classList.add('hidden');
+        if (filterConfig) filterConfig.classList.add('hidden');
+    } else if (engine === 'filter') {
+        cloudConfig.classList.add('hidden');
+        if (localConfig) localConfig.classList.add('hidden');
+        if (filterConfig) filterConfig.classList.remove('hidden');
     } else {
         cloudConfig.classList.add('hidden');
         if (localConfig) localConfig.classList.remove('hidden');
+        if (filterConfig) filterConfig.classList.add('hidden');
     }
     
     // Mode specific display
@@ -1132,22 +1141,37 @@ function updateAiSettingsVisibility() {
         refContainer.classList.add('hidden');
         aiStrengthGroup.classList.add('hidden');
         aiNegPromptGroup.classList.remove('hidden');
+        if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
+        if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
     } else if (mode === 'scribble') {
         doodleContainer.classList.remove('hidden');
         refContainer.classList.add('hidden');
         aiStrengthGroup.classList.add('hidden');
         aiNegPromptGroup.classList.remove('hidden');
+        if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
+        if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
         initDoodleCanvasOnce();
     } else if (mode === 'img2img') {
         doodleContainer.classList.add('hidden');
         refContainer.classList.remove('hidden');
         aiStrengthGroup.classList.remove('hidden');
         aiNegPromptGroup.classList.remove('hidden');
+        if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
+        if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
+    } else if (mode === 'filter') {
+        doodleContainer.classList.add('hidden');
+        refContainer.classList.remove('hidden');
+        aiStrengthGroup.classList.add('hidden');
+        aiNegPromptGroup.classList.add('hidden');
+        if (aiPromptGroup) aiPromptGroup.classList.add('hidden');
+        if (stylePresetGroup) stylePresetGroup.classList.add('hidden');
     } else if (mode === 'controlnet_canny') {
         doodleContainer.classList.add('hidden');
         refContainer.classList.remove('hidden');
         aiStrengthGroup.classList.add('hidden'); // ControlNet strictly enforces structure, so we don't need strength slider
         aiNegPromptGroup.classList.remove('hidden');
+        if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
+        if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
         // Force engine to local since we only support this locally for now
         if (engine !== 'local') {
             aiEngine.value = 'local';
@@ -1184,6 +1208,8 @@ function updateAiSettingsVisibility() {
             if (parseInt(aiSteps.value) > 30 || parseInt(aiSteps.value) < 1) aiSteps.value = 4;
             aiStepsVal.textContent = aiSteps.value;
         }
+    } else if (engine === 'filter') {
+        aiStepsGroup.classList.add('hidden'); // Filter has no steps
     } else {
         // Local CPU mode (Scribble only, requires steps for PyTorch SD 1.5)
         aiStepsGroup.classList.remove('hidden');
@@ -1209,6 +1235,9 @@ modeBtns.forEach(btn => {
         if (newMode === 'text') {
             aiEngine.value = 'cloud';
             if (aiEngineLabel) aiEngineLabel.textContent = 'Cloud API (Hugging Face - Fast & Free)';
+        } else if (newMode === 'filter') {
+            aiEngine.value = 'filter';
+            if (aiEngineLabel) aiEngineLabel.textContent = 'Fast Filter (Local OpenCV / AnimeGAN)';
         } else {
             aiEngine.value = 'local';
             if (aiEngineLabel) aiEngineLabel.textContent = 'Local CPU (PyTorch - Slow & Local)';
@@ -1501,7 +1530,7 @@ const aiLoadingOverlay = document.getElementById('ai-loading-overlay');
 if (aiGenerateBtn) {
     aiGenerateBtn.addEventListener('click', () => {
         const prompt = aiPromptInput.value.trim();
-        if (!prompt) {
+        if (currentAiMode !== 'filter' && !prompt) {
             alert("Please enter a positive prompt description!");
             return;
         }
@@ -1540,6 +1569,13 @@ if (aiGenerateBtn) {
             formData.append('local_model', aiLocalModel.value);
         }
         
+        const aiFilterModel = document.getElementById('ai-filter-model');
+        if (aiFilterModel && engine === 'filter') {
+            formData.append('filter_model', aiFilterModel.value);
+            // Default prompt to bypass validation
+            formData.set('prompt', 'apply_filter');
+        }
+        
         if (currentAiMode === 'scribble') {
             doodleCanvas.toBlob((blob) => {
                 if (!blob) {
@@ -1550,7 +1586,7 @@ if (aiGenerateBtn) {
                 formData.append('image', blob, 'doodle.png');
                 sendAiRequest(formData, resetBtnState);
             }, 'image/png');
-        } else if (currentAiMode === 'img2img' || currentAiMode === 'controlnet_canny') {
+        } else if (currentAiMode === 'img2img' || currentAiMode === 'controlnet_canny' || currentAiMode === 'filter') {
             if (!refUpload.files || !refUpload.files[0]) {
                 alert("Please upload a reference picture first!");
                 resetBtnState();

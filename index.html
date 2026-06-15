@@ -83,6 +83,8 @@
                             <button class="ai-mode-btn" data-mode="controlnet_canny"
                                 style="background: linear-gradient(135deg, #10b981, #059669); color: white;">照片完美轉繪
                                 (ControlNet 線稿)</button>
+                            <button class="ai-mode-btn" data-mode="filter"
+                                style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white;">Fast Filter (一鍵畫風轉換)</button>
                         </div>
 
                         <!-- Engine Source Configuration -->
@@ -134,14 +136,26 @@
                                 <div class="control-group">
                                     <label for="ai-local-model">Local CPU Model (Anime & Ghibli)</label>
                                     <select id="ai-local-model" class="styled-select">
-                                        <option value="cagliostrolab/animagine-xl-3.1" selected>Animagine XL 3.1 (SDXL
-                                            頂級動漫 - 極慢，需 16GB RAM)</option>
-                                        <option value="Lykon/dreamshaper-xl-1.0-turbo">DreamShaper XL Turbo (SDXL 寫實 -
-                                            慢，需 16GB RAM)</option>
+                                        <option value="Lykon/dreamshaper-8" selected>DreamShaper 8 (SD 1.5 綜合 - 快速)</option>
                                         <option value="Meina/MeinaMix_V11">MeinaMix V11 (SD 1.5 純二次元/吉卜力 - 快速)</option>
-                                        <option value="Lykon/dreamshaper-8">DreamShaper 8 (SD 1.5 綜合 - 快速)</option>
-                                        <option value="stablediffusionapi/anything-v5">Anything V5 (SD 1.5 平面動漫 - 快速)
-                                        </option>
+                                        <option value="stablediffusionapi/anything-v5">Anything V5 (SD 1.5 平面動漫 - 快速)</option>
+                                        <option value="SG161222/Realistic_Vision_V5.1_noVAE">Realistic Vision V5.1 (SD 1.5 頂級寫實 - 快速)</option>
+                                        <option value="prompthero/openjourney">OpenJourney (SD 1.5 藝術風格 - 快速)</option>
+                                        <option value="runwayml/stable-diffusion-v1-5">Stable Diffusion 1.5 (SD 1.5 官方基礎 - 快速)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filter Settings (Visible only when filter is active) -->
+                        <div id="ai-filter-config-group" class="hidden">
+                            <div class="ai-settings-grid" style="grid-template-columns: 1fr; margin-bottom: 15px;">
+                                <div class="control-group">
+                                    <label for="ai-filter-model">Filter Style (輕量畫風轉換)</label>
+                                    <select id="ai-filter-model" class="styled-select">
+                                        <option value="sketch" selected>✏️ 素描風 (Pencil Sketch - 零延遲)</option>
+                                        <option value="chibi">🎨 Q版/美漫插畫風 (Chibi / Face Paint)</option>
+                                        <option value="ghibli">🌿 卡通畫/吉卜力 (Ghibli / Hayao)</option>
                                     </select>
                                 </div>
                             </div>
@@ -168,7 +182,7 @@
                         </div>
 
                         <!-- Prompt Input -->
-                        <div class="control-group">
+                        <div class="control-group" id="ai-prompt-group">
                             <div
                                 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                                 <label for="ai-prompt" style="margin-bottom: 0;">Positive Prompt</label>

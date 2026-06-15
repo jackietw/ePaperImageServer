@@ -155,6 +155,51 @@ class EpaperAIGenerator:
             except Exception as e:
                 print("Failed to load config.json:", e)
 
+    def apply_filter(self, input_image: Image.Image, filter_type: str) -> Image.Image:
+        """Apply lightweight filters (OpenCV / AnimeGANv2) to an image without heavy Generative AI."""
+        if not input_image:
+            raise ValueError("An input image is required for filters.")
+            
+        self.current_status = "generating"
+        
+        if filter_type == "sketch":
+            self.current_message = "Applying Pencil Sketch filter (OpenCV)..."
+            print("Applying sketch filter using OpenCV...")
+            # Convert PIL image to OpenCV format (BGR)
+            open_cv_image = np.array(input_image.convert('RGB'))
+            img_bgr = open_cv_image[:, :, ::-1].copy()
+            
+            gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+            inverted = 255 - gray
+            blurred = cv2.GaussianBlur(inverted, (21, 21), 0)
+            inverted_blurred = 255 - blurred
+            sketch = cv2.divide(gray, inverted_blurred, scale=256.0)
+            
+            # Convert back to PIL
+            sketch_rgb = cv2.cvtColor(sketch, cv2.COLOR_GRAY2RGB)
+            return Image.fromarray(sketch_rgb)
+            
+        elif filter_type in ["chibi", "ghibli"]:
+            self.current_message = f"Loading AnimeGANv2 model ({filter_type})..."
+            print(f"Applying AnimeGANv2 filter: {filter_type}")
+            
+            pretrained = "hayao" if filter_type == "ghibli" else "face_paint_512_v2"
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            
+            try:
+                # Load models using PyTorch Hub
+                model = torch.hub.load("bryandlee/animegan2-pytorch:main", "generator", device=device, pretrained=pretrained)
+                face2paint = torch.hub.load("bryandlee/animegan2-pytorch:main", "face2paint", size=512, device=device)
+                
+                self.current_message = f"Applying AnimeGANv2 style ({filter_type})..."
+                out = face2paint(model, input_image.convert('RGB'))
+                return out
+            except Exception as e:
+                print(f"[ERROR] Filter generation failed: {e}")
+                raise RuntimeError(f"Failed to load AnimeGANv2 filter: {e}")
+        else:
+            raise ValueError(f"Unknown filter type: {filter_type}")
+
     def _is_sdxl(self):
         m = self.model_id.lower()
         return "xl" in m or "flux" in m
@@ -307,7 +352,7 @@ class EpaperAIGenerator:
                   steps: int = 20, seed: int = -1, strength: float = 0.75, 
                   input_image: Image.Image = None, engine: str = "cloud", 
                   hf_token: str = "", cloud_model: str = "black-forest-labs/FLUX.1-schnell",
-                  local_model: str = "Lykon/dreamshaper-8") -> Image.Image:
+                  local_model: str = "Lykon/dreamshaper-8", filter_model: str = "sketch") -> Image.Image:
         """
         Generate an art image based on prompt and parameters.
         - engine: "cloud" (Hugging Face API) or "local" (Local PyTorch CPU - Scribble only)
@@ -346,6 +391,9 @@ class EpaperAIGenerator:
         self.current_status = "generating"
         self.is_cancelled = False
         
+        if engine == "filter":
+            return self.apply_filter(input_image, filter_model)
+            
         if engine == "cloud":
             if not token:
                 raise ValueError("Hugging Face API Token is missing! Please configure config.json or input it in the UI settings.")
