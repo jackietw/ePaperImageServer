@@ -1594,6 +1594,53 @@ function sendAiRequest(formData, onComplete) {
     });
 }
 
+const aiEnhanceBtn = document.getElementById('ai-enhance-btn');
+if (aiEnhanceBtn) {
+    aiEnhanceBtn.addEventListener('click', async () => {
+        const prompt = aiPromptInput.value.trim();
+        if (!prompt) {
+            alert("Please enter some text in the Positive Prompt field first!");
+            return;
+        }
+        
+        let hfToken = hfTokenInput.value.trim();
+        if (aiEngine.value === 'cloud' && !hfToken) {
+            alert("Please enter your Hugging Face API Token first!");
+            return;
+        }
+        
+        const originalText = aiEnhanceBtn.textContent;
+        aiEnhanceBtn.textContent = "✨ Enhancing... (Please wait)";
+        aiEnhanceBtn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/enhance_prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: prompt, hf_token: hfToken })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                if (data.positive) {
+                    aiPromptInput.value = data.positive;
+                }
+                if (data.negative) {
+                    aiNegPromptInput.value = data.negative;
+                }
+            } else {
+                alert("Enhancement failed: " + data.message);
+            }
+        } catch (error) {
+            console.error("Enhance error:", error);
+            alert("Error communicating with server.");
+        } finally {
+            aiEnhanceBtn.textContent = originalText;
+            aiEnhanceBtn.disabled = false;
+        }
+    });
+}
+
 // Handle URL parameters for direct editor loading
 document.addEventListener("DOMContentLoaded", () => {
     const urlParams = new URLSearchParams(window.location.search);

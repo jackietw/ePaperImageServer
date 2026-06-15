@@ -105,7 +105,6 @@
                                         <option value="cagliostrolab/animagine-xl-3.1">Animagine XL 3.1 - 最強動漫/二次元</option>
                                         <option value="stabilityai/stable-diffusion-3.5-large">Stable Diffusion 3.5 Large - 最新綜合模型</option>
                                         <option value="black-forest-labs/FLUX.1-schnell">FLUX.1-schnell (快速版)</option>
-                                        <option value="Lykon/dreamshaper-xl-v2-turbo">DreamShaper XL Turbo</option>
                                         <option value="stabilityai/stable-diffusion-xl-base-1.0">Stable Diffusion XL 1.0</option>
                                         <option value="sd-legacy/stable-diffusion-v1-5">Stable Diffusion 1.5 (Lightweight)</option>
                                     </select>
@@ -157,7 +156,10 @@
 
                         <!-- Prompt Input -->
                         <div class="control-group">
-                            <label for="ai-prompt">Positive Prompt</label>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                <label for="ai-prompt" style="margin-bottom: 0;">Positive Prompt</label>
+                                <button type="button" id="ai-enhance-btn" class="icon-btn" style="padding: 4px 10px; font-size: 0.8rem; background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s;">✨ AI 自動擴寫與打標 (Semantic -> Tags)</button>
+                            </div>
                             <textarea id="ai-prompt" class="styled-textarea"
                                 placeholder="Describe the art you want to generate... (e.g., A fantasy forest with glowing mushrooms, oil painting)"
                                 rows="3"></textarea>

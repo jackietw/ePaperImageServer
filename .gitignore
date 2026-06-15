@@ -4,3 +4,4 @@ config.json
 models/
 venv/
 __pycache__/
+generated/

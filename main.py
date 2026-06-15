@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
+from huggingface_hub import InferenceClient
 from generator import ai_generator
 
 app = FastAPI()
@@ -363,6 +364,61 @@ async def delete_generated(request: Request):
         return {"success": True, "message": "Generated file and log deleted successfully"}
     else:
         return JSONResponse(content={"success": False, "message": "File does not exist"})
+
+@app.post("/api/enhance_prompt")
+async def enhance_prompt(request: Request):
+    data = await request.json()
+    prompt = data.get("prompt", "")
+    hf_token = data.get("hf_token", "").strip() or ai_generator.hf_token
+    
+    if not prompt:
+        return JSONResponse(content={"success": False, "message": "Prompt is empty"}, status_code=400)
+    
+    if not hf_token:
+        return JSONResponse(content={"success": False, "message": "Hugging Face API Token is required to use the AI Semantic Analyzer"}, status_code=400)
+        
+    try:
+        client = InferenceClient(token=hf_token)
+        system_prompt = """You are an expert prompt engineer for Stable Diffusion.
+Your task is to take the user's natural language input and convert it into high-quality, comma-separated Danbooru-style tags and descriptive keywords.
+You MUST output EXACTLY a valid JSON object with NO markdown formatting, NO backticks, and NO additional text.
+The JSON must have two keys: "positive" and "negative".
+"positive": The enhanced positive prompt (e.g. masterpiece, best quality, ultra-detailed, 1girl, ...).
+"negative": The suggested negative prompt (e.g. ugly, bad anatomy, deformed, watermark, ...)."""
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ]
+        
+        response = await asyncio.to_thread(
+            client.chat_completion,
+            messages=messages,
+            model="Qwen/Qwen2.5-72B-Instruct",
+            max_tokens=300,
+            temperature=0.7
+        )
+        
+        content = response.choices[0].message.content.strip()
+        # Clean up potential markdown formatting
+        if content.startswith("```json"):
+            content = content[7:]
+        elif content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+            
+        result = json.loads(content.strip())
+        
+        return {
+            "success": True,
+            "positive": result.get("positive", ""),
+            "negative": result.get("negative", "")
+        }
+    except json.JSONDecodeError:
+        return JSONResponse(content={"success": False, "message": "AI failed to return valid JSON formatting. Please try again."}, status_code=500)
+    except Exception as e:
+        return JSONResponse(content={"success": False, "message": str(e)}, status_code=500)
 
 # Below are legacy/unchanged endpoints for Dithering/E-paper logic
 
