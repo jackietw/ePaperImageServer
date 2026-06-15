@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         images.forEach(img => {
             const card = document.createElement('div');
-            card.className = 'image-card';
+            card.className = 'gallery-item';
             
             // Format time
             const date = new Date(img.time * 1000);
@@ -64,16 +64,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             card.innerHTML = `
-                <img src="${img.path}?t=${Date.now()}" alt="${img.name}" loading="lazy" class="gallery-img" data-path="${img.path}">
-                <div class="card-info" style="padding: 10px;">
-                    <div class="filename">${img.name}</div>
-                    <div class="meta">${dateStr} • ${sizeKB} KB</div>
-                    ${promptSnippet ? `<div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 5px; font-style: italic;">"${promptSnippet}"</div>` : ''}
-                    <div class="card-actions" style="margin-top: 10px; display: flex; flex-direction: column; gap: 5px;">
-                        <button class="btn btn-primary send-editor-btn" data-filename="${img.path}" style="padding: 6px; font-size: 0.85rem; width: 100%;">🎨 Send to Editor (Dithering)</button>
-                        <div style="display: flex; gap: 5px;">
-                            <button class="btn btn-secondary view-log-btn" data-name="${img.name}" style="padding: 6px; font-size: 0.85rem; flex: 1;">📄 Log</button>
-                            <button class="btn btn-danger delete-btn" data-filename="${img.name}" style="padding: 6px; font-size: 0.85rem; flex: 1;">🗑️ Delete</button>
+                <div class="image-wrapper">
+                    <img src="${img.path}?t=${Date.now()}" alt="${img.name}" loading="lazy" class="gallery-img" data-path="${img.path}">
+                </div>
+                <div class="item-info" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                    <div class="item-details" style="width: 100%;">
+                        <div class="item-name" style="max-width: 100%;" title="${img.name}">${img.name}</div>
+                        <div class="item-date">${dateStr} • ${sizeKB} KB</div>
+                        ${promptSnippet ? `<div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 5px; font-style: italic; white-space: normal;">"${promptSnippet}"</div>` : ''}
+                    </div>
+                    <div class="card-actions" style="display: flex; flex-direction: column; gap: 8px;">
+                        <button class="btn btn-primary send-editor-btn" data-filename="${img.path}" style="padding: 8px; font-size: 0.85rem; width: 100%; border-radius: 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; cursor: pointer;">🎨 Send to Editor</button>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary view-log-btn" data-name="${img.name}" style="padding: 8px; font-size: 0.85rem; flex: 1;">📄 Log</button>
+                            <button class="btn btn-danger delete-btn" data-filename="${img.name}" style="padding: 8px; font-size: 0.85rem; flex: 1; border: none;">🗑️ Delete</button>
                         </div>
                     </div>
                 </div>

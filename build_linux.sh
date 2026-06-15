@@ -59,7 +59,7 @@ echo "==================================================="
 echo "Downloading DreamShaper 8 and ControlNet Scribble models..."
 python3 -c "
 try:
-    from diffusers import StableDiffusionPipeline, ControlNetModel
+    from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline, ControlNetModel
     print('Downloading DreamShaper 8 model...')
     StableDiffusionPipeline.from_pretrained('Lykon/dreamshaper-8', safety_checker=None, requires_safety_checker=False, cache_dir='models')
     print('Downloading MeinaMix V11 (Anime) model...')
@@ -72,6 +72,12 @@ try:
     ControlNetModel.from_pretrained('lllyasviel/sd-controlnet-scribble', cache_dir='models')
     print('Downloading ControlNet Canny model...')
     ControlNetModel.from_pretrained('lllyasviel/sd-controlnet-canny', cache_dir='models')
+    print('Downloading Animagine XL 3.1 (SDXL) model (Warning: 6GB+)...')
+    StableDiffusionXLPipeline.from_pretrained('cagliostrolab/animagine-xl-3.1', safety_checker=None, requires_safety_checker=False, cache_dir='models')
+    print('Downloading DreamShaper XL Turbo (SDXL) model (Warning: 6GB+)...')
+    StableDiffusionXLPipeline.from_pretrained('Lykon/dreamshaper-xl-1.0-turbo', safety_checker=None, requires_safety_checker=False, cache_dir='models')
+    print('Downloading ControlNet SDXL Canny model (Warning: 2.5GB+)...')
+    ControlNetModel.from_pretrained('diffusers/controlnet-canny-sdxl-1.0', cache_dir='models')
     print('All local models downloaded successfully!')
 except Exception as e:
     print('[ERROR] Model download failed:', e)

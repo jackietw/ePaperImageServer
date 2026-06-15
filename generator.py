@@ -9,7 +9,10 @@ from PIL import Image, ImageOps
 from diffusers import (
     StableDiffusionPipeline, 
     StableDiffusionImg2ImgPipeline, 
-    StableDiffusionControlNetPipeline, 
+    StableDiffusionControlNetPipeline,
+    StableDiffusionXLPipeline,
+    StableDiffusionXLImg2ImgPipeline,
+    StableDiffusionXLControlNetPipeline,
     ControlNetModel,
     UniPCMultistepScheduler
 )
@@ -107,6 +110,7 @@ class EpaperAIGenerator:
         self.model_id = "Lykon/dreamshaper-8"
         self.controlnet_id = "lllyasviel/sd-controlnet-scribble"
         self.controlnet_canny_id = "lllyasviel/sd-controlnet-canny"
+        self.controlnet_xl_canny_id = "diffusers/controlnet-canny-sdxl-1.0"
         
         # Models path setting
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -151,13 +155,22 @@ class EpaperAIGenerator:
             except Exception as e:
                 print("Failed to load config.json:", e)
 
+    def _is_sdxl(self):
+        m = self.model_id.lower()
+        return "xl" in m or "flux" in m
+
     def _init_txt2img(self):
         """Initialize the base text-to-image pipeline for weight sharing (local CPU)."""
         if self.pipe_txt2img is None:
+            is_xl = self._is_sdxl()
+            model_type = "SDXL" if is_xl else "SD 1.5"
             self.current_status = "loading_local_base"
-            self.current_message = "Loading local SD 1.5 base model (about 5GB, first loading takes time)..."
-            print("Loading Base Stable Diffusion v1.5 pipeline...")
-            self.pipe_txt2img = StableDiffusionPipeline.from_pretrained(
+            self.current_message = f"Loading local {model_type} base model (first loading takes time)..."
+            print(f"Loading Base {model_type} pipeline...")
+            
+            pipe_class = StableDiffusionXLPipeline if is_xl else StableDiffusionPipeline
+            
+            self.pipe_txt2img = pipe_class.from_pretrained(
                 self.model_id,
                 safety_checker=None,
                 requires_safety_checker=False,
@@ -172,6 +185,9 @@ class EpaperAIGenerator:
   
     def _init_scribble(self):
         """Initialize ControlNet Scribble pipeline by sharing weights (local CPU)."""
+        if self._is_sdxl():
+            raise ValueError("Scribble mode is currently not supported for local SDXL models. Please use Canny or Img2Img.")
+            
         if self.pipe_scribble is None:
             self.current_status = "loading_local_scribble"
             self.current_message = "Loading local ControlNet Scribble module (first loading takes time)..."
@@ -203,30 +219,42 @@ class EpaperAIGenerator:
     def _init_canny(self):
         """Initialize ControlNet Canny pipeline by sharing weights (local CPU)."""
         if self.pipe_canny is None:
+            is_xl = self._is_sdxl()
+            model_type = "SDXL" if is_xl else "SD 1.5"
+            cnet_id = self.controlnet_xl_canny_id if is_xl else self.controlnet_canny_id
+            
             self.current_status = "loading_local_canny"
-            self.current_message = "Loading local ControlNet Canny module (first loading takes time)..."
+            self.current_message = f"Loading local ControlNet {model_type} Canny module (first loading takes time)..."
             base = self._init_txt2img()
-            print("Loading ControlNet Canny model...")
+            print(f"Loading ControlNet {model_type} Canny model...")
             self.controlnet_canny = ControlNetModel.from_pretrained(
-                self.controlnet_canny_id,
+                cnet_id,
                 torch_dtype=torch.float32,
                 cache_dir=self.cache_dir
             ).to(self.device)
             
             self.current_status = "initializing_local_canny"
-            self.current_message = "Initializing local Canny pipeline..."
+            self.current_message = f"Initializing local {model_type} Canny pipeline..."
             print("Initializing ControlNet Canny pipeline (sharing weights)...")
-            self.pipe_canny = StableDiffusionControlNetPipeline(
-                vae=base.vae,
-                text_encoder=base.text_encoder,
-                tokenizer=base.tokenizer,
-                unet=base.unet,
-                controlnet=self.controlnet_canny,
-                scheduler=base.scheduler,
-                safety_checker=None,
-                feature_extractor=None,
-                requires_safety_checker=False
-            ).to(self.device)
+            
+            pipe_class = StableDiffusionXLControlNetPipeline if is_xl else StableDiffusionControlNetPipeline
+            
+            kwargs = {
+                "vae": base.vae,
+                "text_encoder": base.text_encoder,
+                "tokenizer": base.tokenizer,
+                "unet": base.unet,
+                "controlnet": self.controlnet_canny,
+                "scheduler": base.scheduler,
+                "safety_checker": None,
+                "feature_extractor": None,
+                "requires_safety_checker": False
+            }
+            if is_xl:
+                kwargs["text_encoder_2"] = base.text_encoder_2
+                kwargs["tokenizer_2"] = base.tokenizer_2
+                
+            self.pipe_canny = pipe_class(**kwargs).to(self.device)
             self.pipe_canny.enable_attention_slicing()
         return self.pipe_canny
 
@@ -234,20 +262,29 @@ class EpaperAIGenerator:
     def _init_img2img(self):
         """Initialize local Stable Diffusion Image-to-Image pipeline by sharing weights (local CPU)."""
         if self.pipe_img2img is None:
+            is_xl = self._is_sdxl()
+            model_type = "SDXL" if is_xl else "SD 1.5"
             self.current_status = "initializing_local_img2img"
-            self.current_message = "Initializing local Image-to-Image pipeline..."
+            self.current_message = f"Initializing local {model_type} Image-to-Image pipeline..."
             base = self._init_txt2img()
-            print("Initializing Stable Diffusion Img2Img pipeline (sharing weights)...")
-            self.pipe_img2img = StableDiffusionImg2ImgPipeline(
-                vae=base.vae,
-                text_encoder=base.text_encoder,
-                tokenizer=base.tokenizer,
-                unet=base.unet,
-                scheduler=base.scheduler,
-                safety_checker=None,
-                feature_extractor=None,
-                requires_safety_checker=False
-            ).to(self.device)
+            print(f"Initializing {model_type} Img2Img pipeline (sharing weights)...")
+            
+            pipe_class = StableDiffusionXLImg2ImgPipeline if is_xl else StableDiffusionImg2ImgPipeline
+            kwargs = {
+                "vae": base.vae,
+                "text_encoder": base.text_encoder,
+                "tokenizer": base.tokenizer,
+                "unet": base.unet,
+                "scheduler": base.scheduler,
+                "safety_checker": None,
+                "feature_extractor": None,
+                "requires_safety_checker": False
+            }
+            if is_xl:
+                kwargs["text_encoder_2"] = base.text_encoder_2
+                kwargs["tokenizer_2"] = base.tokenizer_2
+                
+            self.pipe_img2img = pipe_class(**kwargs).to(self.device)
             self.pipe_img2img.enable_attention_slicing()
         return self.pipe_img2img
 
@@ -296,6 +333,13 @@ class EpaperAIGenerator:
         # Clean conversational noise
         prompt = clean_conversational_prompt(prompt)
         negative_prompt = clean_conversational_prompt(negative_prompt)
+        
+        # Quality auto-enhancement
+        if engine == "local" and "xl" in local_model.lower():
+            if "masterpiece" not in prompt.lower():
+                prompt = "masterpiece, best quality, ultra-detailed, " + prompt
+            if "ugly" not in negative_prompt.lower() and negative_prompt:
+                negative_prompt = "ugly, deformed, bad anatomy, watermark, " + negative_prompt
         
         print(f"Generating image. Engine: {engine}, Mode: {mode}, Prompt: '{prompt}', Model: {cloud_model if engine=='cloud' else 'local'}")
         
@@ -537,8 +581,9 @@ class EpaperAIGenerator:
                 elif mode == "controlnet_canny":
                     pipe = self._init_canny()
                     
-                    width = 512
-                    height = 512
+                    is_xl = self._is_sdxl()
+                    width = 1024 if is_xl else 512
+                    height = 1024 if is_xl else 512
                     
                     # Convert to numpy and extract edges
                     image_arr = np.array(input_image.convert("RGB").resize((width, height), Image.Resampling.LANCZOS))
@@ -578,6 +623,7 @@ class EpaperAIGenerator:
                         image=canny_image,
                         num_inference_steps=steps,
                         generator=generator,
+                        controlnet_conditioning_scale=0.7, # Lowered from default 1.0
                         callback_on_step_end=canny_step_end
                     )
                     return result.images[0]
@@ -585,9 +631,9 @@ class EpaperAIGenerator:
                 elif mode == "img2img":
                     pipe = self._init_img2img()
                     
-                    # Standard input resolution for SD v1.5 is 512x512
-                    width = 512
-                    height = 512
+                    is_xl = self._is_sdxl()
+                    width = 1024 if is_xl else 512
+                    height = 1024 if is_xl else 512
                     ref_image = input_image.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
                     
                     if seed == -1:
