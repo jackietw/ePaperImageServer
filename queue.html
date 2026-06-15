@@ -146,6 +146,17 @@
     </header>
 
     <main class="queue-container">
+        <div id="server-status-badge" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--glass-border); border-radius: 8px; padding: 12px 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.2rem;">🖥️</span>
+                <strong style="color: var(--primary-color);">Server Resource Monitor</strong>
+            </div>
+            <div style="display: flex; gap: 20px; font-family: monospace; font-size: 1.05rem;">
+                <span id="sys-cpu" style="color: #cbd5e1;">CPU: --%</span>
+                <span id="sys-ram" style="color: #cbd5e1;">RAM: --% (--GB/--GB)</span>
+            </div>
+        </div>
+
         <h2>Currently Processing</h2>
         <div id="current-task-container">
             <div class="empty-message">No task is currently processing.</div>

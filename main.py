@@ -6,6 +6,7 @@ import io
 import base64
 import uuid
 import json
+import psutil
 from datetime import datetime
 from typing import List, Optional
 from fastapi import FastAPI, UploadFile, File, Form, Request, BackgroundTasks
@@ -419,6 +420,24 @@ The JSON must have two keys: "positive" and "negative".
         return JSONResponse(content={"success": False, "message": "AI failed to return valid JSON formatting. Please try again."}, status_code=500)
     except Exception as e:
         return JSONResponse(content={"success": False, "message": str(e)}, status_code=500)
+
+@app.get("/api/server_status")
+async def server_status():
+    try:
+        cpu_percent = psutil.cpu_percent(interval=None)
+        mem = psutil.virtual_memory()
+        mem_percent = mem.percent
+        mem_used_gb = round(mem.used / (1024**3), 1)
+        mem_total_gb = round(mem.total / (1024**3), 1)
+        return {
+            "success": True,
+            "cpu_percent": cpu_percent,
+            "mem_percent": mem_percent,
+            "mem_used_gb": mem_used_gb,
+            "mem_total_gb": mem_total_gb
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
 
 # Below are legacy/unchanged endpoints for Dithering/E-paper logic
 

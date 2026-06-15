@@ -80,7 +80,9 @@
                             <button class="ai-mode-btn active" data-mode="text">Text to Art</button>
                             <button class="ai-mode-btn" data-mode="scribble">Scribble to Art</button>
                             <button class="ai-mode-btn" data-mode="img2img">Reference Image to Art</button>
-                            <button class="ai-mode-btn" data-mode="controlnet_canny" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">照片完美轉繪 (ControlNet 線稿)</button>
+                            <button class="ai-mode-btn" data-mode="controlnet_canny"
+                                style="background: linear-gradient(135deg, #10b981, #059669); color: white;">照片完美轉繪
+                                (ControlNet 線稿)</button>
                         </div>
 
                         <!-- Engine Source Configuration -->
@@ -101,12 +103,17 @@
                                 <div class="control-group">
                                     <label for="ai-cloud-model">Cloud Model</label>
                                     <select id="ai-cloud-model" class="styled-select">
-                                        <option value="black-forest-labs/FLUX.1-dev" selected>(Recommended) FLUX.1 [dev] - 最強寫實/極致細節</option>
-                                        <option value="cagliostrolab/animagine-xl-3.1">Animagine XL 3.1 - 最強動漫/二次元</option>
-                                        <option value="stabilityai/stable-diffusion-3.5-large">Stable Diffusion 3.5 Large - 最新綜合模型</option>
+                                        <option value="black-forest-labs/FLUX.1-dev" selected>(Recommended) FLUX.1 [dev]
+                                            - 最強寫實/極致細節</option>
+                                        <option value="cagliostrolab/animagine-xl-3.1">Animagine XL 3.1 - 最強動漫/二次元
+                                        </option>
+                                        <option value="stabilityai/stable-diffusion-3.5-large">Stable Diffusion 3.5
+                                            Large - 最新綜合模型</option>
                                         <option value="black-forest-labs/FLUX.1-schnell">FLUX.1-schnell (快速版)</option>
-                                        <option value="stabilityai/stable-diffusion-xl-base-1.0">Stable Diffusion XL 1.0</option>
-                                        <option value="sd-legacy/stable-diffusion-v1-5">Stable Diffusion 1.5 (Lightweight)</option>
+                                        <option value="stabilityai/stable-diffusion-xl-base-1.0">Stable Diffusion XL 1.0
+                                        </option>
+                                        <option value="sd-legacy/stable-diffusion-v1-5">Stable Diffusion 1.5
+                                            (Lightweight)</option>
                                     </select>
                                 </div>
                                 <div class="control-group">
@@ -115,6 +122,7 @@
                                             style="color: var(--primary-color); text-decoration: underline;">Get Free
                                             Token</a>)</label>
                                     <input type="password" id="ai-hf-token" class="styled-input"
+                                        autocomplete="new-password" data-lpignore="true" data-1p-ignore
                                         placeholder="Enter Token (Auto-saves)...">
                                 </div>
                             </div>
@@ -126,11 +134,14 @@
                                 <div class="control-group">
                                     <label for="ai-local-model">Local CPU Model (Anime & Ghibli)</label>
                                     <select id="ai-local-model" class="styled-select">
-                                        <option value="cagliostrolab/animagine-xl-3.1" selected>Animagine XL 3.1 (SDXL 頂級動漫 - 極慢，需 16GB RAM)</option>
-                                        <option value="Lykon/dreamshaper-xl-1.0-turbo">DreamShaper XL Turbo (SDXL 寫實 - 慢，需 16GB RAM)</option>
+                                        <option value="cagliostrolab/animagine-xl-3.1" selected>Animagine XL 3.1 (SDXL
+                                            頂級動漫 - 極慢，需 16GB RAM)</option>
+                                        <option value="Lykon/dreamshaper-xl-1.0-turbo">DreamShaper XL Turbo (SDXL 寫實 -
+                                            慢，需 16GB RAM)</option>
                                         <option value="Meina/MeinaMix_V11">MeinaMix V11 (SD 1.5 純二次元/吉卜力 - 快速)</option>
                                         <option value="Lykon/dreamshaper-8">DreamShaper 8 (SD 1.5 綜合 - 快速)</option>
-                                        <option value="stablediffusionapi/anything-v5">Anything V5 (SD 1.5 平面動漫 - 快速)</option>
+                                        <option value="stablediffusionapi/anything-v5">Anything V5 (SD 1.5 平面動漫 - 快速)
+                                        </option>
                                     </select>
                                 </div>
                             </div>
@@ -138,8 +149,10 @@
 
                         <!-- Easy Mode Style Preset -->
                         <div class="control-group" id="ai-style-preset-group">
-                            <label for="ai-style-preset" style="color: var(--primary-color); font-weight: bold;">✨ Art Style (Easy Mode) 一鍵畫風懶人包</label>
-                            <select id="ai-style-preset" class="styled-select" style="border-color: var(--primary-color);">
+                            <label for="ai-style-preset" style="color: var(--primary-color); font-weight: bold;">✨ Art
+                                Style (Easy Mode) 一鍵畫風懶人包</label>
+                            <select id="ai-style-preset" class="styled-select"
+                                style="border-color: var(--primary-color);">
                                 <option value="none" selected>None (手動自由設定)</option>
                                 <optgroup label="經典宮崎駿 (Studio Ghibli)">
                                     <option value="ghibli_portrait">吉卜力經典畫風 (適合人像自拍)</option>
@@ -156,18 +169,23 @@
 
                         <!-- Prompt Input -->
                         <div class="control-group">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                                 <label for="ai-prompt" style="margin-bottom: 0;">Positive Prompt</label>
-                                <button type="button" id="ai-enhance-btn" class="icon-btn" style="padding: 4px 10px; font-size: 0.8rem; background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s;">✨ AI 自動擴寫與打標 (Semantic -> Tags)</button>
+                                <button type="button" id="ai-enhance-btn" class="icon-btn"
+                                    style="padding: 4px 10px; font-size: 0.8rem; background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s;">✨
+                                    AI 自動擴寫與打標 (Semantic -> Tags)</button>
                             </div>
-                            <textarea id="ai-prompt" class="styled-textarea"
+                            <textarea id="ai-prompt" class="styled-textarea" autocomplete="off" data-lpignore="true"
+                                data-1p-ignore
                                 placeholder="Describe the art you want to generate... (e.g., A fantasy forest with glowing mushrooms, oil painting)"
                                 rows="3"></textarea>
                         </div>
 
                         <div class="control-group" id="ai-neg-prompt-group">
                             <label for="ai-neg-prompt">Negative Prompt (Optional)</label>
-                            <textarea id="ai-neg-prompt" class="styled-textarea"
+                            <textarea id="ai-neg-prompt" class="styled-textarea" autocomplete="off" data-lpignore="true"
+                                data-1p-ignore
                                 placeholder="What to avoid in the image... (e.g., blurry, ugly, low quality)"
                                 rows="2"></textarea>
                         </div>
@@ -256,7 +274,9 @@
                             <button id="reset-btn" class="icon-btn" title="Reset Settings">↺ Reset Settings</button>
                             <button id="restart-btn" class="icon-btn danger-btn" title="Upload New Image">✕ Upload New
                                 Image</button>
-                            <a id="ai-download-btn" class="icon-btn hidden" title="Download Original AI Image" style="background: linear-gradient(135deg, #7c3aed, #4f46e5); color: white; text-decoration: none; display: none;">⬇ Download AI Image</a>
+                            <a id="ai-download-btn" class="icon-btn hidden" title="Download Original AI Image"
+                                style="background: linear-gradient(135deg, #7c3aed, #4f46e5); color: white; text-decoration: none; display: none;">⬇
+                                Download AI Image</a>
                         </div>
                         <div class="control-group">
                             <label for="ratio_select">Output Size</label>

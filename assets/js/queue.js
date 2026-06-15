@@ -21,6 +21,30 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    async function fetchServerStatus() {
+        try {
+            const response = await fetch("/api/server_status");
+            const result = await response.json();
+            
+            if (result.success) {
+                const cpuSpan = document.getElementById("sys-cpu");
+                const ramSpan = document.getElementById("sys-ram");
+                if (cpuSpan && ramSpan) {
+                    cpuSpan.textContent = `CPU: ${result.cpu_percent}%`;
+                    ramSpan.textContent = `RAM: ${result.mem_percent}% (${result.mem_used_gb}GB/${result.mem_total_gb}GB)`;
+                    
+                    if (result.cpu_percent > 85) cpuSpan.style.color = "#ef4444";
+                    else cpuSpan.style.color = "#cbd5e1";
+                    
+                    if (result.mem_percent > 85) ramSpan.style.color = "#ef4444";
+                    else ramSpan.style.color = "#cbd5e1";
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch server status:", error);
+        }
+    }
+
     function renderCurrentTask(task) {
         if (!task) {
             currentContainer.innerHTML = '<div class="empty-message">No task is currently processing.</div>';
@@ -150,5 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Start polling every second
     setInterval(fetchQueueStatus, 1000);
+    setInterval(fetchServerStatus, 2000);
     fetchQueueStatus();
+    fetchServerStatus();
 });
