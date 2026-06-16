@@ -127,15 +127,10 @@
                                     <select id="ai-local-model" class="styled-select">
                                         <option value="Lykon/dreamshaper-8" selected>DreamShaper 8 (SD 1.5 綜合 - 快速)
                                         </option>
-                                        <option value="Meina/MeinaMix_V11">MeinaMix V11 (SD 1.5 純二次元/吉卜力 - 快速)</option>
-                                        <option value="stablediffusionapi/anything-v5">Anything V5 (SD 1.5 平面動漫 - 快速)
-                                        </option>
                                         <option value="stablediffusionapi/disney-pixar-cartoon">Disney Pixar Cartoon (SD 1.5 似顏繪/3D卡通 - 快速)</option>
                                         <option value="SG161222/Realistic_Vision_V5.1_noVAE">Realistic Vision V5.1 (SD
                                             1.5 頂級寫實 - 快速)</option>
                                         <option value="prompthero/openjourney">OpenJourney (SD 1.5 藝術風格 - 快速)</option>
-                                        <option value="runwayml/stable-diffusion-v1-5">Stable Diffusion 1.5 (SD 1.5 官方基礎
-                                            - 快速)</option>
                                     </select>
                                 </div>
                             </div>
@@ -222,9 +217,17 @@
 
                         <!-- Generation settings -->
                         <div class="ai-settings-grid">
+                            <div class="control-group hidden" id="ai-edge-algorithm-group" style="grid-column: 1 / -1;">
+                                <label for="ai-edge-algorithm">Edge Algorithm (Caricature Only)</label>
+                                <select id="ai-edge-algorithm" class="styled-select">
+                                    <option value="canny">Canny (Fast, Mathematical Edge)</option>
+                                    <option value="lineart" selected>LineArt (Anime / Clean Sketch)</option>
+                                    <option value="hed">SoftEdge / HED (Creative Silhouette)</option>
+                                </select>
+                            </div>
                             <div class="control-group" id="ai-steps-group">
-                                <label for="ai-steps">Steps: <span id="ai-steps-val">1</span></label>
-                                <input type="range" id="ai-steps" min="1" max="50" value="1">
+                                <label for="ai-steps">Steps: <span id="ai-steps-val">30</span></label>
+                                <input type="range" id="ai-steps" min="1" max="50" value="30">
                             </div>
                             <div class="control-group hidden" id="ai-strength-group">
                                 <label for="ai-strength">Image Influence: <span id="ai-strength-val">0.75</span></label>

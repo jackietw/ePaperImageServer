@@ -90,7 +90,8 @@ async def process_queue():
                         engine=params.get('engine', 'cloud'),
                         hf_token=params.get('hf_token', ''),
                         cloud_model=params.get('cloud_model', ''),
-                        local_model=params.get('local_model', '')
+                        local_model=params.get('local_model', ''),
+                        edge_algorithm=params.get('edge_algorithm', 'canny')
                     )
                     
                     if ai_generator.is_cancelled:

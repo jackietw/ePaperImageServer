@@ -130,7 +130,8 @@ class EpaperAIGenerator:
         # Local Pipelines (lazy-loaded)
         self.pipe_txt2img = None
         self.pipe_scribble = None
-        self.pipe_canny = None
+        self.pipe_controlnet_edge = None
+        self.current_edge_algorithm = None
         self.pipe_img2img = None
         self.controlnet = None
         self.controlnet_canny = None
@@ -219,26 +220,36 @@ class EpaperAIGenerator:
             self.pipe_scribble.enable_attention_slicing()
         return self.pipe_scribble
 
-    def _init_canny(self):
-        """Initialize ControlNet Canny pipeline by sharing weights (local CPU)."""
-        if self.pipe_canny is None:
-            is_xl = self._is_sdxl()
-            model_type = "SDXL" if is_xl else "SD 1.5"
-            cnet_id = self.controlnet_xl_canny_id if is_xl else self.controlnet_canny_id
+    def _init_controlnet_edge(self, edge_algorithm="canny"):
+        """Initialize ControlNet pipeline for edges (Canny, Lineart, SoftEdge) (local CPU)."""
+        is_xl = self._is_sdxl()
+        model_type = "SDXL" if is_xl else "SD 1.5"
+        
+        if is_xl and edge_algorithm != "canny":
+            print(f"Warning: {edge_algorithm} is not supported for SDXL yet. Falling back to Canny.")
+            edge_algorithm = "canny"
             
-            self.current_status = "loading_local_canny"
-            self.current_message = f"Loading local ControlNet {model_type} Canny module (first loading takes time)..."
+        cnet_id_map = {
+            "canny": self.controlnet_xl_canny_id if is_xl else "lllyasviel/sd-controlnet-canny",
+            "lineart": "lllyasviel/control_v11p_sd15_lineart",
+            "hed": "lllyasviel/control_v11p_sd15_softedge"
+        }
+        cnet_id = cnet_id_map.get(edge_algorithm, "lllyasviel/sd-controlnet-canny")
+
+        if self.pipe_controlnet_edge is None or self.current_edge_algorithm != edge_algorithm:
+            self.current_status = f"loading_local_{edge_algorithm}"
+            self.current_message = f"Loading local ControlNet {model_type} {edge_algorithm.capitalize()} module..."
             base = self._init_txt2img()
-            print(f"Loading ControlNet {model_type} Canny model...")
-            self.controlnet_canny = ControlNetModel.from_pretrained(
+            print(f"Loading ControlNet {model_type} {edge_algorithm} model...")
+            controlnet = ControlNetModel.from_pretrained(
                 cnet_id,
                 torch_dtype=self.torch_dtype,
                 cache_dir=self.cache_dir
             ).to(self.device)
             
-            self.current_status = "initializing_local_canny"
-            self.current_message = f"Initializing local {model_type} Canny pipeline..."
-            print("Initializing ControlNet Canny pipeline (sharing weights)...")
+            self.current_status = f"initializing_local_{edge_algorithm}"
+            self.current_message = f"Initializing local {model_type} {edge_algorithm.capitalize()} pipeline..."
+            print(f"Initializing ControlNet {edge_algorithm} pipeline (sharing weights)...")
             
             pipe_class = StableDiffusionXLControlNetPipeline if is_xl else StableDiffusionControlNetPipeline
             
@@ -247,7 +258,7 @@ class EpaperAIGenerator:
                 "text_encoder": base.text_encoder,
                 "tokenizer": base.tokenizer,
                 "unet": base.unet,
-                "controlnet": self.controlnet_canny,
+                "controlnet": controlnet,
                 "scheduler": base.scheduler,
                 "safety_checker": None,
                 "feature_extractor": None,
@@ -257,9 +268,11 @@ class EpaperAIGenerator:
                 kwargs["text_encoder_2"] = base.text_encoder_2
                 kwargs["tokenizer_2"] = base.tokenizer_2
                 
-            self.pipe_canny = pipe_class(**kwargs).to(self.device)
-            self.pipe_canny.enable_attention_slicing()
-        return self.pipe_canny
+            self.pipe_controlnet_edge = pipe_class(**kwargs).to(self.device)
+            self.pipe_controlnet_edge.enable_attention_slicing()
+            self.current_edge_algorithm = edge_algorithm
+            
+        return self.pipe_controlnet_edge
 
 
     def _init_img2img(self):
@@ -296,7 +309,7 @@ class EpaperAIGenerator:
         print("Unloading PyTorch pipelines to free RAM...")
         self.pipe_txt2img = None
         self.pipe_scribble = None
-        self.pipe_canny = None
+        self.pipe_controlnet_edge = None
         self.pipe_img2img = None
         self.controlnet = None
         self.controlnet_canny = None
@@ -310,7 +323,7 @@ class EpaperAIGenerator:
                   steps: int = 20, seed: int = -1, strength: float = 0.75, 
                   input_image: Image.Image = None, engine: str = "cloud", 
                   hf_token: str = "", cloud_model: str = "black-forest-labs/FLUX.1-schnell",
-                  local_model: str = "Lykon/dreamshaper-8") -> Image.Image:
+                  local_model: str = "Lykon/dreamshaper-8", edge_algorithm: str = "canny") -> Image.Image:
         """
         Generate an art image based on prompt and parameters.
         - engine: "cloud" (Hugging Face API) or "local" (Local PyTorch CPU - Scribble only)
@@ -582,24 +595,33 @@ class EpaperAIGenerator:
                     return result.images[0]
                     
                 elif mode == "controlnet_canny":
-                    pipe = self._init_canny()
+                    pipe = self._init_controlnet_edge(edge_algorithm)
                     
                     is_xl = self._is_sdxl()
                     width = 1024 if is_xl else 512
                     height = 1024 if is_xl else 512
                     
-                    # Convert to numpy and extract edges
-                    image_arr = np.array(input_image.convert("RGB").resize((width, height), Image.Resampling.LANCZOS))
-                    image_gray = cv2.cvtColor(image_arr, cv2.COLOR_RGB2GRAY)
+                    input_img_resized = input_image.convert("RGB").resize((width, height), Image.Resampling.LANCZOS)
                     
-                    # Apply Canny Edge Detection
-                    edges = cv2.Canny(image_gray, 100, 200)
+                    self.current_status = "extracting_edges"
+                    self.current_message = f"Extracting {edge_algorithm.capitalize()} edges (may take a moment)..."
                     
-                    # Expand dims to make it 3 channels again
-                    edges = edges[:, :, None]
-                    edges = np.concatenate([edges, edges, edges], axis=2)
-                    
-                    canny_image = Image.fromarray(edges)
+                    if edge_algorithm == "lineart":
+                        from controlnet_aux import LineartDetector
+                        processor = LineartDetector.from_pretrained("lllyasviel/Annotators").to(self.device)
+                        edge_image = processor(input_img_resized)
+                    elif edge_algorithm == "hed":
+                        from controlnet_aux import HEDdetector
+                        processor = HEDdetector.from_pretrained("lllyasviel/Annotators").to(self.device)
+                        edge_image = processor(input_img_resized)
+                    else:
+                        # Default to Canny
+                        image_arr = np.array(input_img_resized)
+                        image_gray = cv2.cvtColor(image_arr, cv2.COLOR_RGB2GRAY)
+                        edges = cv2.Canny(image_gray, 100, 200)
+                        edges = edges[:, :, None]
+                        edges = np.concatenate([edges, edges, edges], axis=2)
+                        edge_image = Image.fromarray(edges)
                     
                     if seed == -1:
                         generator = None
@@ -607,27 +629,27 @@ class EpaperAIGenerator:
                         generator = torch.Generator(device=self.device).manual_seed(seed)
                         
                     self.current_status = "generating"
-                    self.current_message = "Local AI drawing image... Step 0/{} (using ControlNet Canny CPU, estimated 8~15 minutes)...".format(steps)
+                    self.current_message = f"Local AI drawing image... Step 0/{steps} (using ControlNet {edge_algorithm.capitalize()} CPU, estimated 8~15 minutes)..."
                     
                     actual_total = steps
-                    def canny_step_end(pipe, step: int, timestep: int, callback_kwargs: dict):
+                    def controlnet_step_end(pipe, step: int, timestep: int, callback_kwargs: dict):
                         if self.is_cancelled:
-                            print("Canny generation cancelled.")
+                            print(f"{edge_algorithm} generation cancelled.")
                             raise InterruptedError("Generation cancelled by user.")
                         display_step = min(step + 1, actual_total)
                         self.current_progress = int((display_step / actual_total) * 100)
-                        self.current_message = f"Local AI drawing image... Step {display_step}/{actual_total} (using ControlNet Canny CPU, estimated 8~15 minutes)..."
-                        print(f"[Local AI Canny Progress] Step {display_step}/{actual_total} ({self.current_progress}%)")
+                        self.current_message = f"Local AI drawing image... Step {display_step}/{actual_total} (using ControlNet {edge_algorithm.capitalize()} CPU, estimated 8~15 minutes)..."
+                        print(f"[Local AI {edge_algorithm.capitalize()} Progress] Step {display_step}/{actual_total} ({self.current_progress}%)")
                         return callback_kwargs
 
                     result = pipe(
                         prompt=prompt,
                         negative_prompt=negative_prompt,
-                        image=canny_image,
+                        image=edge_image,
                         num_inference_steps=steps,
                         generator=generator,
-                        controlnet_conditioning_scale=0.7, # Lowered from default 1.0
-                        callback_on_step_end=canny_step_end
+                        controlnet_conditioning_scale=0.7,
+                        callback_on_step_end=controlnet_step_end
                     )
                     return result.images[0]
                     

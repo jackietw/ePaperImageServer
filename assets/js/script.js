@@ -1129,11 +1129,14 @@ function updateAiSettingsVisibility() {
         if (localConfig) localConfig.classList.remove('hidden');
     }
     
+    const aiEdgeAlgorithmGroup = document.getElementById('ai-edge-algorithm-group');
+
     // Mode specific display
     if (mode === 'text') {
         doodleContainer.classList.add('hidden');
         refContainer.classList.add('hidden');
         aiStrengthGroup.classList.add('hidden');
+        if (aiEdgeAlgorithmGroup) aiEdgeAlgorithmGroup.classList.add('hidden');
         aiNegPromptGroup.classList.remove('hidden');
         if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
         if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
@@ -1141,6 +1144,7 @@ function updateAiSettingsVisibility() {
         doodleContainer.classList.remove('hidden');
         refContainer.classList.add('hidden');
         aiStrengthGroup.classList.add('hidden');
+        if (aiEdgeAlgorithmGroup) aiEdgeAlgorithmGroup.classList.add('hidden');
         aiNegPromptGroup.classList.remove('hidden');
         if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
         if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
@@ -1149,6 +1153,7 @@ function updateAiSettingsVisibility() {
         doodleContainer.classList.add('hidden');
         refContainer.classList.remove('hidden');
         aiStrengthGroup.classList.remove('hidden');
+        if (aiEdgeAlgorithmGroup) aiEdgeAlgorithmGroup.classList.add('hidden');
         aiNegPromptGroup.classList.remove('hidden');
         if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
         if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
@@ -1156,6 +1161,7 @@ function updateAiSettingsVisibility() {
         doodleContainer.classList.add('hidden');
         refContainer.classList.remove('hidden');
         aiStrengthGroup.classList.add('hidden'); // ControlNet strictly enforces structure, so we don't need strength slider
+        if (aiEdgeAlgorithmGroup) aiEdgeAlgorithmGroup.classList.remove('hidden');
         aiNegPromptGroup.classList.remove('hidden');
         if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
         if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
@@ -1217,7 +1223,7 @@ function updateAiSettingsVisibility() {
         aiStepsGroup.classList.remove('hidden');
         aiSteps.min = 5;
         aiSteps.max = 50;
-        if (parseInt(aiSteps.value) < 5 || parseInt(aiSteps.value) > 50) aiSteps.value = 20;
+        if (parseInt(aiSteps.value) < 5 || parseInt(aiSteps.value) > 50 || parseInt(aiSteps.value) === 1) aiSteps.value = 30;
         aiStepsVal.textContent = aiSteps.value;
     }
 }
@@ -1579,6 +1585,11 @@ if (aiGenerateBtn) {
         const aiLocalModel = document.getElementById('ai-local-model');
         if (aiLocalModel) {
             formData.append('local_model', aiLocalModel.value);
+        }
+        
+        const aiEdgeAlgorithm = document.getElementById('ai-edge-algorithm');
+        if (aiEdgeAlgorithm && currentAiMode === 'controlnet_canny') {
+            formData.append('edge_algorithm', aiEdgeAlgorithm.value);
         }
         
         if (currentAiMode === 'scribble') {

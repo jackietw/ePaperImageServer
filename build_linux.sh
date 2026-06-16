@@ -56,31 +56,43 @@ echo "==================================================="
 echo "[3/3] Pre-downloading Local PyTorch Models (for Scribble)..."
 echo "==================================================="
 
-echo "Downloading DreamShaper 8 and ControlNet Scribble models..."
+echo "Downloading DreamShaper 8 and ControlNet models..."
 python3 -c "
+import os
 try:
-    from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline, ControlNetModel
-    print('Downloading DreamShaper 8 model...')
-    StableDiffusionPipeline.from_pretrained('Lykon/dreamshaper-8', safety_checker=None, requires_safety_checker=False, cache_dir='models')
-    print('Downloading MeinaMix V11 (Anime) model...')
-    StableDiffusionPipeline.from_pretrained('Meina/MeinaMix_V11', safety_checker=None, requires_safety_checker=False, cache_dir='models')
-    print('Downloading Anything V5 (Anime) model...')
-    StableDiffusionPipeline.from_pretrained('stablediffusionapi/anything-v5', safety_checker=None, requires_safety_checker=False, cache_dir='models')
-    print('Downloading Studio Ghibli Style model...')
-    StableDiffusionPipeline.from_pretrained('nitrosocke/Ghibli-Diffusion', safety_checker=None, requires_safety_checker=False, cache_dir='models')
-    print('Downloading ControlNet Scribble model...')
-    ControlNetModel.from_pretrained('lllyasviel/sd-controlnet-scribble', cache_dir='models')
-    print('Downloading ControlNet Canny model...')
-    ControlNetModel.from_pretrained('lllyasviel/sd-controlnet-canny', cache_dir='models')
-    print('Downloading Realistic Vision V5.1 model...')
-    StableDiffusionPipeline.from_pretrained('SG161222/Realistic_Vision_V5.1_noVAE', safety_checker=None, requires_safety_checker=False, cache_dir='models')
-    print('Downloading Disney Pixar Cartoon model...')
-    StableDiffusionPipeline.from_pretrained('stablediffusionapi/disney-pixar-cartoon', safety_checker=None, requires_safety_checker=False, cache_dir='models')
-    print('Downloading OpenJourney model...')
-    StableDiffusionPipeline.from_pretrained('prompthero/openjourney', safety_checker=None, requires_safety_checker=False, cache_dir='models')
-    print('Downloading Stable Diffusion 1.5 base model...')
-    StableDiffusionPipeline.from_pretrained('runwayml/stable-diffusion-v1-5', safety_checker=None, requires_safety_checker=False, cache_dir='models')
-    print('All local models downloaded successfully!')
+    from diffusers import StableDiffusionPipeline, ControlNetModel
+    
+    def download_pipe(model_id, is_controlnet=False):
+        model_dir_name = 'models--' + model_id.replace('/', '--')
+        model_path = os.path.join('models', model_dir_name)
+        if os.path.exists(model_path):
+            print(f'Skipping {model_id} (already locally cached in {model_path})...')
+            return
+            
+        print(f'Downloading {model_id}...')
+        if is_controlnet:
+            ControlNetModel.from_pretrained(model_id, cache_dir='models')
+        else:
+            StableDiffusionPipeline.from_pretrained(model_id, safety_checker=None, requires_safety_checker=False, cache_dir='models')
+
+    download_pipe('Lykon/dreamshaper-8')
+    download_pipe('lllyasviel/sd-controlnet-scribble', True)
+    download_pipe('lllyasviel/sd-controlnet-canny', True)
+    download_pipe('lllyasviel/control_v11p_sd15_lineart', True)
+    download_pipe('lllyasviel/control_v11p_sd15_softedge', True)
+    download_pipe('SG161222/Realistic_Vision_V5.1_noVAE')
+    download_pipe('stablediffusionapi/disney-pixar-cartoon')
+    download_pipe('prompthero/openjourney')
+    
+    print('Downloading Annotator neural networks...')
+    try:
+        from controlnet_aux import LineartDetector, HEDdetector
+        LineartDetector.from_pretrained('lllyasviel/Annotators')
+        HEDdetector.from_pretrained('lllyasviel/Annotators')
+    except ImportError:
+        print('controlnet_aux not installed yet, skipping annotator pre-download.')
+    
+    print('All local models downloaded and verified successfully!')
 except Exception as e:
     print('[ERROR] Model download failed:', e)
     exit(1)
