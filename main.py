@@ -213,6 +213,7 @@ async def queue_generate(
     hf_token: str = Form(""),
     cloud_model: str = Form("black-forest-labs/FLUX.1-schnell"),
     local_model: str = Form("Lykon/dreamshaper-8"),
+    edge_algorithm: str = Form("canny"),
     image: UploadFile = File(None)
 ):
     try:
@@ -239,7 +240,8 @@ async def queue_generate(
                 "engine": engine,
                 "hf_token": hf_token,
                 "cloud_model": cloud_model,
-                "local_model": local_model
+                "local_model": local_model,
+                "edge_algorithm": edge_algorithm
             }
         }
         
