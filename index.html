@@ -82,9 +82,6 @@
                             <button class="ai-mode-btn" data-mode="img2img">Reference Image to Art</button>
                             <button class="ai-mode-btn" data-mode="controlnet_canny"
                                 style="background: linear-gradient(135deg, #10b981, #059669); color: white;">Caricature</button>
-                            <button class="ai-mode-btn" data-mode="filter"
-                                style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white;">Fast
-                                Filter</button>
                         </div>
 
                         <!-- Engine Source Configuration -->
@@ -105,17 +102,9 @@
                                 <div class="control-group">
                                     <label for="ai-cloud-model">Cloud Model</label>
                                     <select id="ai-cloud-model" class="styled-select">
-                                        <option value="black-forest-labs/FLUX.1-dev" selected>(Recommended) FLUX.1 [dev]
-                                            - 最強寫實/極致細節</option>
-                                        <option value="cagliostrolab/animagine-xl-3.1">Animagine XL 3.1 - 最強動漫/二次元
-                                        </option>
-                                        <option value="stabilityai/stable-diffusion-3.5-large">Stable Diffusion 3.5
-                                            Large - 最新綜合模型</option>
-                                        <option value="black-forest-labs/FLUX.1-schnell">FLUX.1-schnell (快速版)</option>
-                                        <option value="stabilityai/stable-diffusion-xl-base-1.0">Stable Diffusion XL 1.0
-                                        </option>
-                                        <option value="sd-legacy/stable-diffusion-v1-5">Stable Diffusion 1.5
-                                            (Lightweight)</option>
+                                        <option value="black-forest-labs/FLUX.1-schnell" selected>(推薦) FLUX.1-schnell - 目前免費 API 最穩定/極速</option>
+                                        <option value="Lykon/dreamshaper-xl-v2-turbo">DreamShaper XL Turbo - 動漫寫實綜合/支援圖生圖</option>
+                                        <option value="stabilityai/stable-diffusion-xl-base-1.0">Stable Diffusion XL 1.0 - 官方基礎大模型</option>
                                     </select>
                                 </div>
                                 <div class="control-group">
@@ -152,19 +141,7 @@
                             </div>
                         </div>
 
-                        <!-- Filter Settings (Visible only when filter is active) -->
-                        <div id="ai-filter-config-group" class="hidden">
-                            <div class="ai-settings-grid" style="grid-template-columns: 1fr; margin-bottom: 15px;">
-                                <div class="control-group">
-                                    <label for="ai-filter-model">Filter Style (輕量畫風轉換)</label>
-                                    <select id="ai-filter-model" class="styled-select">
-                                        <option value="sketch" selected>✏️ 素描風 (Pencil Sketch - 零延遲)</option>
-                                        <option value="chibi">🎨 Q版/美漫插畫風 (Chibi / Face Paint)</option>
-                                        <option value="ghibli">🌿 卡通畫/吉卜力 (Ghibli / Hayao)</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Removed Filter Settings -->
 
                         <!-- Easy Mode Style Preset -->
                         <div class="control-group" id="ai-style-preset-group">
@@ -173,15 +150,17 @@
                             <select id="ai-style-preset" class="styled-select"
                                 style="border-color: var(--primary-color);">
                                 <option value="none" selected>None (手動自由設定)</option>
-                                <optgroup label="經典宮崎駿 (Studio Ghibli)">
-                                    <option value="ghibli_portrait">吉卜力經典畫風 (適合人像自拍)</option>
-                                    <option value="ghibli_scenery">吉卜力風景畫 (適合風景/背景)</option>
+
+                                <optgroup label="卡通漫畫 (Cartoon & Comic)">
+                                    <option value="cartoon">美式卡通 (Cartoon)</option>
+                                    <option value="comic">美漫風格 (Comic / Marvel Style)</option>
+                                    <option value="caricature">誇張似顏繪 (Caricature)</option>
                                 </optgroup>
-                                <optgroup label="動漫畫風 (Anime Styles)">
-                                    <option value="modern_anime">現代精緻動漫風 (Modern Anime)</option>
-                                    <option value="demon_slayer">鬼滅之刃風格 (Demon Slayer)</option>
-                                    <option value="bw_manga">黑白漫畫/線稿 (B&W Manga)</option>
-                                    <option value="chibi">Q版可愛風格 (Chibi / Cute)</option>
+                                <optgroup label="藝術畫派 (Fine Arts)">
+                                    <option value="impressionism">印象派 (Impressionism - 莫內/梵谷風格)</option>
+                                    <option value="realism">寫實派 (Realism - 古典油畫細節)</option>
+                                    <option value="fauvism">野獸派 (Fauvism - 強烈色彩對比)</option>
+                                    <option value="abstract">抽象派 (Abstract - 幾何與色彩解構)</option>
                                 </optgroup>
                             </select>
                         </div>

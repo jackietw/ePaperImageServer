@@ -90,8 +90,7 @@ async def process_queue():
                         engine=params.get('engine', 'cloud'),
                         hf_token=params.get('hf_token', ''),
                         cloud_model=params.get('cloud_model', ''),
-                        local_model=params.get('local_model', ''),
-                        filter_model=params.get('filter_model', 'sketch')
+                        local_model=params.get('local_model', '')
                     )
                     
                     if ai_generator.is_cancelled:
@@ -213,7 +212,6 @@ async def queue_generate(
     hf_token: str = Form(""),
     cloud_model: str = Form("black-forest-labs/FLUX.1-schnell"),
     local_model: str = Form("Lykon/dreamshaper-8"),
-    filter_model: str = Form("sketch"),
     image: UploadFile = File(None)
 ):
     try:
@@ -240,8 +238,7 @@ async def queue_generate(
                 "engine": engine,
                 "hf_token": hf_token,
                 "cloud_model": cloud_model,
-                "local_model": local_model,
-                "filter_model": filter_model
+                "local_model": local_model
             }
         }
         

@@ -1124,15 +1124,9 @@ function updateAiSettingsVisibility() {
     if (engine === 'cloud') {
         cloudConfig.classList.remove('hidden');
         if (localConfig) localConfig.classList.add('hidden');
-        if (filterConfig) filterConfig.classList.add('hidden');
-    } else if (engine === 'filter') {
-        cloudConfig.classList.add('hidden');
-        if (localConfig) localConfig.classList.add('hidden');
-        if (filterConfig) filterConfig.classList.remove('hidden');
     } else {
         cloudConfig.classList.add('hidden');
         if (localConfig) localConfig.classList.remove('hidden');
-        if (filterConfig) filterConfig.classList.add('hidden');
     }
     
     // Mode specific display
@@ -1158,13 +1152,6 @@ function updateAiSettingsVisibility() {
         aiNegPromptGroup.classList.remove('hidden');
         if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
         if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
-    } else if (mode === 'filter') {
-        doodleContainer.classList.add('hidden');
-        refContainer.classList.remove('hidden');
-        aiStrengthGroup.classList.add('hidden');
-        aiNegPromptGroup.classList.add('hidden');
-        if (aiPromptGroup) aiPromptGroup.classList.add('hidden');
-        if (stylePresetGroup) stylePresetGroup.classList.add('hidden');
     } else if (mode === 'controlnet_canny') {
         doodleContainer.classList.add('hidden');
         refContainer.classList.remove('hidden');
@@ -1188,10 +1175,7 @@ function updateAiSettingsVisibility() {
     const cloudModelGroup = aiCloudModel ? aiCloudModel.parentElement : null;
     const localModelGroup = document.getElementById('ai-local-model') ? document.getElementById('ai-local-model').parentElement : null;
     
-    if (mode === 'filter') {
-        // Filter handles its own model visibility
-    } else {
-        const isCustom = !stylePreset || stylePreset.value === 'none';
+    const isCustom = !stylePreset || stylePreset.value === 'none';
         if (cloudModelGroup) {
             if (isCustom) cloudModelGroup.classList.remove('hidden');
             else cloudModelGroup.classList.add('hidden');
@@ -1200,7 +1184,6 @@ function updateAiSettingsVisibility() {
             if (isCustom) localModelGroup.classList.remove('hidden');
             else localModelGroup.classList.add('hidden');
         }
-    }
 
     // Disable models not supporting image-to-image task (like FLUX.1-schnell served by nscale)
     const fluxOption = aiCloudModel.querySelector('option[value="black-forest-labs/FLUX.1-schnell"]');
@@ -1487,47 +1470,55 @@ if (aiStylePreset) {
         }
 
         switch (val) {
-            case 'ghibli_portrait':
-                if (aiLocalModel) aiLocalModel.value = 'Meina/MeinaMix_V11';
-                aiStrength.value = 0.45;
+
+            case 'cartoon':
+                if (aiLocalModel) aiLocalModel.value = 'stablediffusionapi/disney-pixar-cartoon';
+                aiStrength.value = 0.65;
+                aiSteps.value = 30;
+                appendPrompt('masterpiece, best quality, 2d cartoon style, vibrant colors, clean lines, western animation style, highly detailed');
+                aiNegPrompt.value = 'realistic, 3d render, anime, manga, ugly, deformed, bad anatomy, photograph, blurry';
+                break;
+            case 'comic':
+                if (aiLocalModel) aiLocalModel.value = 'Lykon/dreamshaper-8';
+                aiStrength.value = 0.65;
+                aiSteps.value = 30;
+                appendPrompt('masterpiece, best quality, western comic book style, marvel comic style, detailed ink lines, halftones, bold colors, dramatic lighting');
+                aiNegPrompt.value = 'anime, manga, 3d render, realistic, photograph, ugly, blurry, text, bad anatomy';
+                break;
+            case 'caricature':
+                if (aiLocalModel) aiLocalModel.value = 'Lykon/dreamshaper-8';
+                aiStrength.value = 0.70;
                 aiSteps.value = 35;
-                appendPrompt('masterpiece, best quality, studio ghibli style, anime style');
-                aiNegPrompt.value = 'ugly, deformed, bad anatomy, bad faces, realistic, monster, 3d, text, watermark';
+                appendPrompt('masterpiece, best quality, exaggerated caricature style, funny portrait, big head, small body, highly detailed illustration, humorous cartoon');
+                aiNegPrompt.value = 'realistic, normal proportions, boring, ugly, blurry, photograph, 3d render, bad anatomy';
                 break;
-            case 'ghibli_scenery':
-                if (aiLocalModel) aiLocalModel.value = 'nitrosocke/Ghibli-Diffusion';
-                aiStrength.value = 0.65;
-                aiSteps.value = 30;
-                appendPrompt('ghibli style, masterpiece, beautiful landscape');
-                aiNegPrompt.value = 'ugly, blurry, people, realistic, bad anatomy, text';
-                break;
-            case 'modern_anime':
-                if (aiLocalModel) aiLocalModel.value = 'Meina/MeinaMix_V11';
-                aiStrength.value = 0.55;
-                aiSteps.value = 25;
-                appendPrompt('masterpiece, best quality, highly detailed, modern anime style, dynamic lighting');
-                aiNegPrompt.value = 'ugly, deformed, bad anatomy, realistic, worst quality, low quality, text';
-                break;
-            case 'demon_slayer':
-                if (aiLocalModel) aiLocalModel.value = 'Meina/MeinaMix_V11';
-                aiStrength.value = 0.55;
-                aiSteps.value = 30;
-                appendPrompt('masterpiece, kimetsu no yaiba, demon slayer style, ufotable, dynamic lighting, anime style');
-                aiNegPrompt.value = 'ugly, deformed, bad anatomy, realistic, 3d, photograph';
-                break;
-            case 'bw_manga':
-                if (aiLocalModel) aiLocalModel.value = 'stablediffusionapi/anything-v5';
+            case 'impressionism':
+                if (aiLocalModel) aiLocalModel.value = 'prompthero/openjourney';
                 aiStrength.value = 0.60;
-                aiSteps.value = 25;
-                appendPrompt('masterpiece, monochrome, greyscale, manga style, lineart, screentone, high contrast');
-                aiNegPrompt.value = 'color, colorful, realistic, 3d, photograph, blurry, bad anatomy';
+                aiSteps.value = 30;
+                appendPrompt('masterpiece, best quality, impressionist painting, oil on canvas, visible brushstrokes, Monet style, Van Gogh style, beautiful vibrant colors, artistic, aesthetic');
+                aiNegPrompt.value = 'photograph, realistic, digital art, anime, manga, 3d render, clean lines, flat colors, blurry, modern';
                 break;
-            case 'chibi':
-                if (aiLocalModel) aiLocalModel.value = 'stablediffusionapi/anything-v5';
+            case 'realism':
+                if (aiLocalModel) aiLocalModel.value = 'SG161222/Realistic_Vision_V5.1_noVAE';
+                aiStrength.value = 0.55;
+                aiSteps.value = 35;
+                appendPrompt('masterpiece, best quality, classical realism painting, oil painting, highly detailed, lifelike textures, Rembrandt lighting, museum quality, classic art');
+                aiNegPrompt.value = 'anime, cartoon, 3d render, flat, blurry, sketch, modern art, abstract, minimalist';
+                break;
+            case 'fauvism':
+                if (aiLocalModel) aiLocalModel.value = 'prompthero/openjourney';
                 aiStrength.value = 0.65;
                 aiSteps.value = 30;
-                appendPrompt('masterpiece, chibi, super deformed, cute, big eyes, simple background, kawaii');
-                aiNegPrompt.value = 'realistic, tall, normal proportions, adult, complex, detailed face, 3d';
+                appendPrompt('masterpiece, best quality, fauvism painting, Henri Matisse style, wild brushwork, strong vibrant colors, high contrast, artistic, expressive mood');
+                aiNegPrompt.value = 'realistic, photograph, dull colors, monochrome, grayscale, 3d render, anime, subtle lighting';
+                break;
+            case 'abstract':
+                if (aiLocalModel) aiLocalModel.value = 'prompthero/openjourney';
+                aiStrength.value = 0.70;
+                aiSteps.value = 30;
+                appendPrompt('masterpiece, best quality, abstract art, geometric shapes, expressive colors, non-representational, modern art, Picasso style, Kandinsky style, highly conceptual');
+                aiNegPrompt.value = 'realistic, photograph, anime, portrait, landscape, clear anatomy, 3d render, classical, boring';
                 break;
         }
 
@@ -1551,7 +1542,7 @@ const aiLoadingOverlay = document.getElementById('ai-loading-overlay');
 if (aiGenerateBtn) {
     aiGenerateBtn.addEventListener('click', () => {
         const prompt = aiPromptInput.value.trim();
-        if (currentAiMode !== 'filter' && !prompt) {
+        if (!prompt) {
             alert("Please enter a positive prompt description!");
             return;
         }
@@ -1590,13 +1581,6 @@ if (aiGenerateBtn) {
             formData.append('local_model', aiLocalModel.value);
         }
         
-        const aiFilterModel = document.getElementById('ai-filter-model');
-        if (aiFilterModel && engine === 'filter') {
-            formData.append('filter_model', aiFilterModel.value);
-            // Default prompt to bypass validation
-            formData.set('prompt', 'apply_filter');
-        }
-        
         if (currentAiMode === 'scribble') {
             doodleCanvas.toBlob((blob) => {
                 if (!blob) {
@@ -1607,7 +1591,7 @@ if (aiGenerateBtn) {
                 formData.append('image', blob, 'doodle.png');
                 sendAiRequest(formData, resetBtnState);
             }, 'image/png');
-        } else if (currentAiMode === 'img2img' || currentAiMode === 'controlnet_canny' || currentAiMode === 'filter') {
+        } else if (currentAiMode === 'img2img' || currentAiMode === 'controlnet_canny') {
             if (!refUpload.files || !refUpload.files[0]) {
                 alert("Please upload a reference picture first!");
                 resetBtnState();

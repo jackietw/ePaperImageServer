@@ -6,6 +6,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let isPolling = false;
 
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe.toString()
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
+
     async function fetchQueueStatus() {
         try {
             const response = await fetch("/api/queue_status");
@@ -66,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <p><strong>Time:</strong> ${date}</p>
                         <p><strong>Engine:</strong> ${task.params.engine}</p>
                         <p><strong>Mode:</strong> ${task.params.mode}</p>
-                        <p><strong>Prompt:</strong> ${task.params.prompt}</p>
+                        <p><strong>Prompt:</strong> ${escapeHtml(task.params.prompt)}</p>
                         
                         <div class="task-progress">
                             <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
@@ -105,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                     <div class="task-body" style="gap: 10px;">
                         <div class="task-details" style="font-size: 0.9rem;">
-                            <p><strong>Prompt:</strong> ${task.params.prompt.substring(0, 100)}${task.params.prompt.length > 100 ? '...' : ''}</p>
+                            <p><strong>Prompt:</strong> ${escapeHtml(task.params.prompt.substring(0, 100))}${task.params.prompt.length > 100 ? '...' : ''}</p>
                             <p><strong>Mode:</strong> ${task.params.mode} | <strong>Engine:</strong> ${task.params.engine}</p>
                         </div>
                         <div class="task-actions">
@@ -139,8 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="task-body">
                         <div class="task-details" style="font-size: 0.9rem;">
                             <p><strong>Time:</strong> ${date}</p>
-                            <p><strong>Prompt:</strong> ${task.params.prompt.substring(0, 100)}${task.params.prompt.length > 100 ? '...' : ''}</p>
-                            ${task.error ? `<p style="color: #f87171; margin-top: 5px;"><strong>Error:</strong> ${task.error}</p>` : ''}
+                            <p><strong>Prompt:</strong> ${escapeHtml(task.params.prompt.substring(0, 100))}${task.params.prompt.length > 100 ? '...' : ''}</p>
+                            ${task.error ? `<p style="color: #f87171; margin-top: 5px;"><strong>Error:</strong> ${escapeHtml(task.error)}</p>` : ''}
                             ${task.result_path ? `<p style="margin-top: 5px;"><a href="${task.result_path}" target="_blank" style="color: #60a5fa;">View Image</a></p>` : ''}
                         </div>
                     </div>
