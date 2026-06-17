@@ -79,9 +79,7 @@
                         <div class="ai-modes-tabs">
                             <button class="ai-mode-btn active" data-mode="text">Text to Art</button>
                             <button class="ai-mode-btn" data-mode="scribble">Scribble to Art</button>
-                            <button class="ai-mode-btn" data-mode="img2img">Reference Image to Art</button>
-                            <button class="ai-mode-btn" data-mode="controlnet_canny"
-                                style="background: linear-gradient(135deg, #10b981, #059669); color: white;">Caricature</button>
+                            <button class="ai-mode-btn" data-mode="img2img">Image to Image (Style & Edges)</button>
                         </div>
 
                         <!-- Engine Source Configuration -->
@@ -103,7 +101,6 @@
                                     <label for="ai-cloud-model">Cloud Model</label>
                                     <select id="ai-cloud-model" class="styled-select">
                                         <option value="black-forest-labs/FLUX.1-schnell" selected>(推薦) FLUX.1-schnell - 目前免費 API 最穩定/極速</option>
-                                        <option value="Lykon/dreamshaper-xl-v2-turbo">DreamShaper XL Turbo - 動漫寫實綜合/支援圖生圖</option>
                                         <option value="stabilityai/stable-diffusion-xl-base-1.0">Stable Diffusion XL 1.0 - 官方基礎大模型</option>
                                     </select>
                                 </div>
@@ -139,7 +136,7 @@
                         <!-- Removed Filter Settings -->
 
                         <!-- Easy Mode Style Preset -->
-                        <div class="control-group" id="ai-style-preset-group">
+                        <div class="control-group" id="ai-style-preset-group" style="margin-top: 15px;">
                             <label for="ai-style-preset" style="color: var(--primary-color); font-weight: bold;">✨ Art
                                 Style (Easy Mode) 一鍵畫風懶人包</label>
                             <select id="ai-style-preset" class="styled-select"
@@ -158,17 +155,14 @@
                                     <option value="abstract">抽象派 (Abstract - 幾何與色彩解構)</option>
                                 </optgroup>
                             </select>
+                            <small style="color: #64748b; font-size: 0.8rem; margin-top: 4px; display: block;">
+                                選擇風格後，系統會在「送出時」自動加上專業咒語，不會覆蓋您目前輸入的文字。
+                            </small>
                         </div>
 
                         <!-- Prompt Input -->
                         <div class="control-group" id="ai-prompt-group">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                                <label for="ai-prompt" style="margin-bottom: 0;">Positive Prompt</label>
-                                <button type="button" id="ai-enhance-btn" class="icon-btn"
-                                    style="padding: 4px 10px; font-size: 0.8rem; background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s;">✨
-                                    AI 自動擴寫與打標 (Semantic -> Tags)</button>
-                            </div>
+                            <label for="ai-prompt" style="margin-bottom: 5px; display: block;">Positive Prompt</label>
                             <textarea id="ai-prompt" class="styled-textarea" autocomplete="off" data-lpignore="true"
                                 data-1p-ignore
                                 placeholder="Describe the art you want to generate... (e.g., A fantasy forest with glowing mushrooms, oil painting)"
@@ -218,11 +212,12 @@
                         <!-- Generation settings -->
                         <div class="ai-settings-grid">
                             <div class="control-group hidden" id="ai-edge-algorithm-group" style="grid-column: 1 / -1;">
-                                <label for="ai-edge-algorithm">Edge Algorithm (Caricature Only)</label>
+                                <label for="ai-edge-algorithm">Image Generation Mode</label>
                                 <select id="ai-edge-algorithm" class="styled-select">
-                                    <option value="canny">Canny (Fast, Mathematical Edge)</option>
-                                    <option value="lineart" selected>LineArt (Anime / Clean Sketch)</option>
-                                    <option value="hed">SoftEdge / HED (Creative Silhouette)</option>
+                                    <option value="img2img" selected>Color & Style Transfer (標準圖生圖)</option>
+                                    <option value="lineart">LineArt (動漫線稿控制)</option>
+                                    <option value="hed">SoftEdge (柔和邊緣控制)</option>
+                                    <option value="canny">Canny (硬邊緣控制)</option>
                                 </select>
                             </div>
                             <div class="control-group" id="ai-steps-group">

@@ -1139,7 +1139,6 @@ function updateAiSettingsVisibility() {
         if (aiEdgeAlgorithmGroup) aiEdgeAlgorithmGroup.classList.add('hidden');
         aiNegPromptGroup.classList.remove('hidden');
         if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
-        if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
     } else if (mode === 'scribble') {
         doodleContainer.classList.remove('hidden');
         refContainer.classList.add('hidden');
@@ -1147,49 +1146,38 @@ function updateAiSettingsVisibility() {
         if (aiEdgeAlgorithmGroup) aiEdgeAlgorithmGroup.classList.add('hidden');
         aiNegPromptGroup.classList.remove('hidden');
         if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
-        if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
         initDoodleCanvasOnce();
     } else if (mode === 'img2img') {
         doodleContainer.classList.add('hidden');
         refContainer.classList.remove('hidden');
-        aiStrengthGroup.classList.remove('hidden');
-        if (aiEdgeAlgorithmGroup) aiEdgeAlgorithmGroup.classList.add('hidden');
-        aiNegPromptGroup.classList.remove('hidden');
-        if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
-        if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
-    } else if (mode === 'controlnet_canny') {
-        doodleContainer.classList.add('hidden');
-        refContainer.classList.remove('hidden');
-        aiStrengthGroup.classList.add('hidden'); // ControlNet strictly enforces structure, so we don't need strength slider
         if (aiEdgeAlgorithmGroup) aiEdgeAlgorithmGroup.classList.remove('hidden');
+        
+        const aiEdgeAlgorithm = document.getElementById('ai-edge-algorithm');
+        if (aiEdgeAlgorithm && aiEdgeAlgorithm.value !== 'img2img') {
+            // ControlNet mode (Canny/LineArt/HED)
+            aiStrengthGroup.classList.add('hidden'); // ControlNet enforces structure, no strength slider needed
+            if (engine !== 'local') {
+                aiEngine.value = 'local';
+                const eLabel = document.getElementById('ai-engine-label');
+                if (eLabel) eLabel.textContent = 'Local Server (CPU)';
+                updateAiSettingsVisibility(); // recursive call to settle state
+                return;
+            }
+        } else {
+            // Standard img2img
+            aiStrengthGroup.classList.remove('hidden');
+        }
+        
         aiNegPromptGroup.classList.remove('hidden');
         if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
-        if (stylePresetGroup) stylePresetGroup.classList.remove('hidden');
-        // Force engine to local since we only support this locally for now
-        if (engine !== 'local') {
-            aiEngine.value = 'local';
-            // re-trigger the engine label update and visibility update
-            const eLabel = document.getElementById('ai-engine-label');
-            if (eLabel) eLabel.textContent = 'Local Server (CPU)';
-            updateAiSettingsVisibility(); // recursive call to settle state
-            return;
-        }
     }
 
-    // Hide model selection if a preset is selected
-    const stylePreset = document.getElementById('ai-style-preset');
+    // Always show model selection for cloud and local
     const cloudModelGroup = aiCloudModel ? aiCloudModel.parentElement : null;
     const localModelGroup = document.getElementById('ai-local-model') ? document.getElementById('ai-local-model').parentElement : null;
     
-    const isCustom = !stylePreset || stylePreset.value === 'none';
-        if (cloudModelGroup) {
-            if (isCustom) cloudModelGroup.classList.remove('hidden');
-            else cloudModelGroup.classList.add('hidden');
-        }
-        if (localModelGroup) {
-            if (isCustom) localModelGroup.classList.remove('hidden');
-            else localModelGroup.classList.add('hidden');
-        }
+    if (cloudModelGroup) cloudModelGroup.classList.remove('hidden');
+    if (localModelGroup) localModelGroup.classList.remove('hidden');
 
     // Disable models not supporting image-to-image task (like FLUX.1-schnell served by nscale)
     const fluxOption = aiCloudModel.querySelector('option[value="black-forest-labs/FLUX.1-schnell"]');
@@ -1197,7 +1185,7 @@ function updateAiSettingsVisibility() {
         if (mode === 'img2img') {
             fluxOption.disabled = true;
             if (aiCloudModel.value === 'black-forest-labs/FLUX.1-schnell') {
-                aiCloudModel.value = 'Lykon/dreamshaper-xl-v2-turbo';
+                aiCloudModel.value = 'stabilityai/stable-diffusion-xl-base-1.0';
             }
         } else {
             fluxOption.disabled = false;
@@ -1232,6 +1220,11 @@ function updateAiSettingsVisibility() {
 
 if (aiCloudModel) {
     aiCloudModel.addEventListener('change', updateAiSettingsVisibility);
+}
+
+const aiEdgeAlgorithm = document.getElementById('ai-edge-algorithm');
+if (aiEdgeAlgorithm) {
+    aiEdgeAlgorithm.addEventListener('change', updateAiSettingsVisibility);
 }
 
 modeBtns.forEach(btn => {
@@ -1444,98 +1437,7 @@ if (aiStrength && aiStrengthVal) {
 // ==========================================
 const aiStylePreset = document.getElementById('ai-style-preset');
 if (aiStylePreset) {
-    aiStylePreset.addEventListener('change', (e) => {
-        const val = e.target.value;
-        const aiLocalModel = document.getElementById('ai-local-model');
-        const aiPrompt = document.getElementById('ai-prompt');
-        const aiNegPrompt = document.getElementById('ai-neg-prompt');
-        const aiSteps = document.getElementById('ai-steps');
-        const aiStepsVal = document.getElementById('ai-steps-val');
-        const aiStrength = document.getElementById('ai-strength');
-        const aiStrengthVal = document.getElementById('ai-strength-val');
-
-        updateAiSettingsVisibility(); // Ensure UI reflects Custom mode selection
-
-        if (val === 'none') return;
-
-        // Common helper to append suffix safely
-        const appendPrompt = (suffix) => {
-            let current = aiPrompt.value.trim();
-            if (current && !current.endsWith(',')) current += ', ';
-            else if (current) current += ' ';
-            aiPrompt.value = current + suffix;
-        };
-
-        // Make sure engine is set to local to use these specific local models
-        const img2imgBtn = document.querySelector('.ai-mode-btn[data-mode="img2img"]');
-        const cannyBtn = document.querySelector('.ai-mode-btn[data-mode="controlnet_canny"]');
-        
-        // If not in img2img or canny, switch to img2img
-        if (currentAiMode !== 'img2img' && currentAiMode !== 'controlnet_canny') {
-            if (img2imgBtn) img2imgBtn.click();
-        }
-
-        switch (val) {
-
-            case 'cartoon':
-                if (aiLocalModel) aiLocalModel.value = 'stablediffusionapi/disney-pixar-cartoon';
-                aiStrength.value = 0.65;
-                aiSteps.value = 30;
-                appendPrompt('masterpiece, best quality, 2d cartoon style, vibrant colors, clean lines, western animation style, highly detailed');
-                aiNegPrompt.value = 'realistic, 3d render, anime, manga, ugly, deformed, bad anatomy, photograph, blurry';
-                break;
-            case 'comic':
-                if (aiLocalModel) aiLocalModel.value = 'Lykon/dreamshaper-8';
-                aiStrength.value = 0.65;
-                aiSteps.value = 30;
-                appendPrompt('masterpiece, best quality, western comic book style, marvel comic style, detailed ink lines, halftones, bold colors, dramatic lighting');
-                aiNegPrompt.value = 'anime, manga, 3d render, realistic, photograph, ugly, blurry, text, bad anatomy';
-                break;
-            case 'caricature':
-                if (aiLocalModel) aiLocalModel.value = 'Lykon/dreamshaper-8';
-                aiStrength.value = 0.70;
-                aiSteps.value = 35;
-                appendPrompt('masterpiece, best quality, exaggerated caricature style, funny portrait, big head, small body, highly detailed illustration, humorous cartoon');
-                aiNegPrompt.value = 'realistic, normal proportions, boring, ugly, blurry, photograph, 3d render, bad anatomy';
-                break;
-            case 'impressionism':
-                if (aiLocalModel) aiLocalModel.value = 'prompthero/openjourney';
-                aiStrength.value = 0.60;
-                aiSteps.value = 30;
-                appendPrompt('masterpiece, best quality, impressionist painting, oil on canvas, visible brushstrokes, Monet style, Van Gogh style, beautiful vibrant colors, artistic, aesthetic');
-                aiNegPrompt.value = 'photograph, realistic, digital art, anime, manga, 3d render, clean lines, flat colors, blurry, modern';
-                break;
-            case 'realism':
-                if (aiLocalModel) aiLocalModel.value = 'SG161222/Realistic_Vision_V5.1_noVAE';
-                aiStrength.value = 0.55;
-                aiSteps.value = 35;
-                appendPrompt('masterpiece, best quality, classical realism painting, oil painting, highly detailed, lifelike textures, Rembrandt lighting, museum quality, classic art');
-                aiNegPrompt.value = 'anime, cartoon, 3d render, flat, blurry, sketch, modern art, abstract, minimalist';
-                break;
-            case 'fauvism':
-                if (aiLocalModel) aiLocalModel.value = 'prompthero/openjourney';
-                aiStrength.value = 0.65;
-                aiSteps.value = 30;
-                appendPrompt('masterpiece, best quality, fauvism painting, Henri Matisse style, wild brushwork, strong vibrant colors, high contrast, artistic, expressive mood');
-                aiNegPrompt.value = 'realistic, photograph, dull colors, monochrome, grayscale, 3d render, anime, subtle lighting';
-                break;
-            case 'abstract':
-                if (aiLocalModel) aiLocalModel.value = 'prompthero/openjourney';
-                aiStrength.value = 0.70;
-                aiSteps.value = 30;
-                appendPrompt('masterpiece, best quality, abstract art, geometric shapes, expressive colors, non-representational, modern art, Picasso style, Kandinsky style, highly conceptual');
-                aiNegPrompt.value = 'realistic, photograph, anime, portrait, landscape, clear anatomy, 3d render, classical, boring';
-                break;
-        }
-
-        // Update UI displays
-        if (aiStepsVal) aiStepsVal.textContent = aiSteps.value;
-        if (aiStrengthVal) aiStrengthVal.textContent = aiStrength.value;
-        
-        // Brief visual feedback that settings were applied
-        aiStylePreset.style.backgroundColor = '#dcfce7';
-        setTimeout(() => aiStylePreset.style.backgroundColor = '', 500);
-    });
+        // Removed style preset logic
 }
 
 // Generation Submission Handlers
@@ -1546,8 +1448,8 @@ const aiSeedInput = document.getElementById('ai-seed');
 const aiLoadingOverlay = document.getElementById('ai-loading-overlay');
 
 if (aiGenerateBtn) {
-    aiGenerateBtn.addEventListener('click', () => {
-        const prompt = aiPromptInput.value.trim();
+    aiGenerateBtn.addEventListener('click', async () => {
+        let prompt = aiPromptInput.value.trim();
         if (!prompt) {
             alert("Please enter a positive prompt description!");
             return;
@@ -1564,17 +1466,79 @@ if (aiGenerateBtn) {
         // Disable the button to prevent double-clicks
         aiGenerateBtn.disabled = true;
         const originalBtnText = aiGenerateBtn.textContent;
-        aiGenerateBtn.textContent = "Generating...";
+        aiGenerateBtn.textContent = "Processing & Enhancing...";
         
         const resetBtnState = () => {
             aiGenerateBtn.disabled = false;
             aiGenerateBtn.textContent = originalBtnText;
         };
 
+        let negative_prompt = aiNegPromptInput.value.trim();
+
+        // 1. Auto Semantic Tagging (For Local Models only, under the hood)
+        if (engine === 'local') {
+            try {
+                const enhanceResponse = await fetch('/api/enhance_prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt, hf_token: hfToken })
+                });
+                const data = await enhanceResponse.json();
+                if (data.success && data.positive) {
+                    prompt = data.positive;
+                    if (data.negative) {
+                        negative_prompt = (negative_prompt ? negative_prompt + ', ' : '') + data.negative;
+                    }
+                }
+            } catch(e) {
+                console.error("Auto enhance failed, continuing with original prompt.", e);
+            }
+        }
+
+        // 2. Easy Mode Style Appending (Under the hood)
+        const stylePreset = document.getElementById('ai-style-preset');
+        if (stylePreset && stylePreset.value !== 'none') {
+            let presetTags = '';
+            let presetNeg = '';
+            switch(stylePreset.value) {
+                case 'cartoon':
+                    presetTags = 'masterpiece, best quality, 2d cartoon style, vibrant colors, clean lines, western animation style, highly detailed';
+                    presetNeg = 'realistic, 3d render, anime, manga, ugly, deformed, bad anatomy, photograph, blurry';
+                    break;
+                case 'comic':
+                    presetTags = 'masterpiece, best quality, western comic book style, marvel comic style, detailed ink lines, halftones, bold colors, dramatic lighting';
+                    presetNeg = 'anime, manga, 3d render, realistic, photograph, ugly, blurry, text, bad anatomy';
+                    break;
+                case 'caricature':
+                    presetTags = 'masterpiece, best quality, exaggerated caricature style, funny portrait, big head, small body, highly detailed illustration, humorous cartoon';
+                    presetNeg = 'realistic, normal proportions, boring, ugly, blurry, photograph, 3d render, bad anatomy';
+                    break;
+                case 'impressionism':
+                    presetTags = 'masterpiece, best quality, impressionist painting, oil on canvas, visible brushstrokes, Monet style, Van Gogh style, beautiful vibrant colors, artistic, aesthetic';
+                    presetNeg = 'photograph, realistic, digital art, anime, manga, 3d render, clean lines, flat colors, blurry, modern';
+                    break;
+                case 'realism':
+                    presetTags = 'masterpiece, best quality, classical realism painting, oil painting, highly detailed, lifelike textures, Rembrandt lighting, museum quality, classic art';
+                    presetNeg = 'anime, cartoon, 3d render, flat, blurry, sketch, modern art, abstract, minimalist';
+                    break;
+                case 'fauvism':
+                    presetTags = 'masterpiece, best quality, fauvism painting, Henri Matisse style, wild brushwork, strong vibrant colors, high contrast, artistic, expressive mood';
+                    presetNeg = 'realistic, photograph, dull colors, monochrome, grayscale, 3d render, anime, subtle lighting';
+                    break;
+                case 'abstract':
+                    presetTags = 'masterpiece, best quality, abstract art, geometric shapes, expressive colors, non-representational, modern art, Picasso style, Kandinsky style, highly conceptual';
+                    presetNeg = 'realistic, photograph, anime, portrait, landscape, clear anatomy, 3d render, classical, boring';
+                    break;
+            }
+            if (presetTags) prompt = prompt + ', ' + presetTags;
+            if (presetNeg) negative_prompt = (negative_prompt ? negative_prompt + ', ' : '') + presetNeg;
+        }
+
+        aiGenerateBtn.textContent = "Submitting to Queue...";
+
         const formData = new FormData();
         formData.append('prompt', prompt);
-        formData.append('negative_prompt', aiNegPromptInput.value.trim());
-        formData.append('mode', currentAiMode);
+        formData.append('negative_prompt', negative_prompt);
         formData.append('steps', aiSteps.value);
         formData.append('seed', aiSeedInput.value);
         formData.append('strength', aiStrength.value);
@@ -1586,11 +1550,16 @@ if (aiGenerateBtn) {
         if (aiLocalModel) {
             formData.append('local_model', aiLocalModel.value);
         }
-        
+
+        let finalMode = currentAiMode;
         const aiEdgeAlgorithm = document.getElementById('ai-edge-algorithm');
-        if (aiEdgeAlgorithm && currentAiMode === 'controlnet_canny') {
+        
+        if (currentAiMode === 'img2img' && aiEdgeAlgorithm && aiEdgeAlgorithm.value !== 'img2img') {
+            finalMode = 'controlnet_canny';
             formData.append('edge_algorithm', aiEdgeAlgorithm.value);
         }
+        
+        formData.append('mode', finalMode);
         
         if (currentAiMode === 'scribble') {
             doodleCanvas.toBlob((blob) => {
@@ -1602,7 +1571,7 @@ if (aiGenerateBtn) {
                 formData.append('image', blob, 'doodle.png');
                 sendAiRequest(formData, resetBtnState);
             }, 'image/png');
-        } else if (currentAiMode === 'img2img' || currentAiMode === 'controlnet_canny') {
+        } else if (currentAiMode === 'img2img') {
             if (!refUpload.files || !refUpload.files[0]) {
                 alert("Please upload a reference picture first!");
                 resetBtnState();
@@ -1646,52 +1615,7 @@ function sendAiRequest(formData, onComplete) {
     });
 }
 
-const aiEnhanceBtn = document.getElementById('ai-enhance-btn');
-if (aiEnhanceBtn) {
-    aiEnhanceBtn.addEventListener('click', async () => {
-        const prompt = aiPromptInput.value.trim();
-        if (!prompt) {
-            alert("Please enter some text in the Positive Prompt field first!");
-            return;
-        }
-        
-        let hfToken = hfTokenInput.value.trim();
-        if (aiEngine.value === 'cloud' && !hfToken) {
-            alert("Please enter your Hugging Face API Token first!");
-            return;
-        }
-        
-        const originalText = aiEnhanceBtn.textContent;
-        aiEnhanceBtn.textContent = "✨ Enhancing... (Please wait)";
-        aiEnhanceBtn.disabled = true;
-        
-        try {
-            const response = await fetch('/api/enhance_prompt', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: prompt, hf_token: hfToken })
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-                if (data.positive) {
-                    aiPromptInput.value = data.positive;
-                }
-                if (data.negative) {
-                    aiNegPromptInput.value = data.negative;
-                }
-            } else {
-                alert("Enhancement failed: " + data.message);
-            }
-        } catch (error) {
-            console.error("Enhance error:", error);
-            alert("Error communicating with server.");
-        } finally {
-            aiEnhanceBtn.textContent = originalText;
-            aiEnhanceBtn.disabled = false;
-        }
-    });
-}
+// Removed enhance button logic
 
 // Handle URL parameters for direct editor loading
 document.addEventListener("DOMContentLoaded", () => {
