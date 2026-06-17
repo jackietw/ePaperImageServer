@@ -89,6 +89,7 @@ async def process_queue():
                         input_image=input_image,
                         engine=params.get('engine', 'cloud'),
                         hf_token=params.get('hf_token', ''),
+                        gemini_token=params.get('gemini_token', ''),
                         cloud_model=params.get('cloud_model', ''),
                         local_model=params.get('local_model', ''),
                         edge_algorithm=params.get('edge_algorithm', 'canny')
@@ -211,6 +212,7 @@ async def queue_generate(
     strength: float = Form(0.75),
     engine: str = Form("cloud"),
     hf_token: str = Form(""),
+    gemini_token: str = Form(""),
     cloud_model: str = Form("black-forest-labs/FLUX.1-schnell"),
     local_model: str = Form("Lykon/dreamshaper-8"),
     edge_algorithm: str = Form("canny"),
@@ -239,6 +241,7 @@ async def queue_generate(
                 "strength": strength,
                 "engine": engine,
                 "hf_token": hf_token,
+                "gemini_token": gemini_token,
                 "cloud_model": cloud_model,
                 "local_model": local_model,
                 "edge_algorithm": edge_algorithm
@@ -448,7 +451,8 @@ async def server_status():
 def get_config():
     ai_generator.load_config()
     return {
-        "hf_token": ai_generator.hf_token
+        "hf_token": ai_generator.hf_token,
+        "gemini_token": getattr(ai_generator, "gemini_token", "")
     }
 
 @app.get("/api/list_images")

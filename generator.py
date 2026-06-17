@@ -152,8 +152,12 @@ class EpaperAIGenerator:
             try:
                 with open(self.config_path, "r", encoding="utf-8") as f:
                     config = json.load(f)
-                    self.hf_token = config.get("hf_token", "").strip()
-                    print("Loaded Hugging Face token from config.json")
+                    self.hf_token = config.get("hf_token", "")
+                    self.gemini_token = config.get("gemini_token", "")
+                    if self.hf_token:
+                        print("Loaded Hugging Face token from config.json")
+                    if self.gemini_token:
+                        print("Loaded Gemini API token from config.json")
             except Exception as e:
                 print("Failed to load config.json:", e)
 
@@ -540,6 +544,84 @@ class EpaperAIGenerator:
                 
                 print(f"Cloud API generation failed: {err_msg}")
                 raise RuntimeError(f"Cloud API failed: {err_msg}. Please check if your Token is valid, the model is available, or if you hit rate limits.")
+                self.current_status = "idle"
+                self.current_message = ""
+                
+        elif engine == "gemini":
+            try:
+                self.current_status = "generating"
+                self.current_message = f"Gemini API generating image ({mode} mode)..."
+                
+                token = kwargs.get("gemini_token", "") or getattr(self, "gemini_token", "")
+                if not token:
+                    raise ValueError("Google Gemini API Key is missing. Please set it in config or UI.")
+                
+                import requests
+                import base64
+                
+                # Ensure the model format matches Google's API conventions
+                # The user's input model string is typically "gemini-3.1-flash-image"
+                model_name = cloud_model if cloud_model else "gemini-3.1-flash-image"
+                api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:predict?key={token}"
+                
+                payload = {
+                    "instances": [
+                        { "prompt": prompt }
+                    ],
+                    "parameters": {
+                        "sampleCount": 1
+                    }
+                }
+                
+                if mode in ["scribble", "img2img"] and input_image:
+                    buffered = io.BytesIO()
+                    rgb_img = input_image.convert("RGB")
+                    rgb_img.save(buffered, format="JPEG")
+                    img_b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                    payload["instances"][0]["image"] = {
+                        "bytesBase64Encoded": img_b64
+                    }
+                
+                response = requests.post(api_url, json=payload)
+                
+                if response.status_code != 200:
+                    err_msg = response.text
+                    try:
+                        err_json = response.json()
+                        if "error" in err_json:
+                            err_msg = err_json["error"].get("message", response.text)
+                    except:
+                        pass
+                    
+                    if response.status_code == 429:
+                        raise RuntimeError("⚠️ 您的 Gemini 免費配額今日已達上限！請切換回 Hugging Face 雲端模型，或是明日再試。")
+                    else:
+                        raise RuntimeError(f"Gemini API Error ({response.status_code}): {err_msg}")
+                    
+                res_data = response.json()
+                
+                try:
+                    # Attempt to parse Google's standard image generation response format
+                    if "predictions" in res_data:
+                        b64_image = res_data["predictions"][0].get("bytesBase64Encoded", "")
+                    elif "candidates" in res_data:
+                        # Alternative response format
+                        b64_image = res_data["candidates"][0]["content"]["parts"][0]["inlineData"]["data"]
+                    else:
+                        raise ValueError("Unknown response structure.")
+                        
+                    image_bytes = base64.b64decode(b64_image)
+                    image = Image.open(io.BytesIO(image_bytes))
+                    return image
+                except Exception as parse_e:
+                    raise RuntimeError(f"Failed to decode image from Gemini API response: {parse_e}\nRaw Response: {response.text[:200]}")
+                    
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                err_msg = str(e)
+                print(f"Gemini API generation failed: {err_msg}")
+                raise RuntimeError(f"Gemini API failed: {err_msg}")
             finally:
                 self.current_status = "idle"
                 self.current_message = ""

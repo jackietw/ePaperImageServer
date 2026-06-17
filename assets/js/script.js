@@ -1099,6 +1099,10 @@ const aiEngine = document.getElementById('ai-engine');
 const cloudConfig = document.getElementById('ai-cloud-config-group');
 const aiCloudModel = document.getElementById('ai-cloud-model');
 const hfTokenInput = document.getElementById('ai-hf-token');
+const hfTokenGroup = document.getElementById('ai-hf-token-group');
+const geminiTokenInput = document.getElementById('ai-gemini-token');
+const geminiTokenGroup = document.getElementById('ai-gemini-token-group');
+const geminiTokenLink = document.getElementById('ai-gemini-token-link');
 const aiStepsGroup = document.getElementById('ai-steps-group');
 const aiSteps = document.getElementById('ai-steps');
 const aiStepsVal = document.getElementById('ai-steps-val');
@@ -1154,15 +1158,8 @@ function updateAiSettingsVisibility() {
         
         const aiEdgeAlgorithm = document.getElementById('ai-edge-algorithm');
         if (aiEdgeAlgorithm && aiEdgeAlgorithm.value !== 'img2img') {
-            // ControlNet mode (Canny/LineArt/HED)
-            aiStrengthGroup.classList.add('hidden'); // ControlNet enforces structure, no strength slider needed
-            if (engine !== 'local') {
-                aiEngine.value = 'local';
-                const eLabel = document.getElementById('ai-engine-label');
-                if (eLabel) eLabel.textContent = 'Local Server (CPU)';
-                updateAiSettingsVisibility(); // recursive call to settle state
-                return;
-            }
+            // ControlNet enforces structure, no strength slider needed
+            aiStrengthGroup.classList.add('hidden');
         } else {
             // Standard img2img
             aiStrengthGroup.classList.remove('hidden');
@@ -1182,13 +1179,24 @@ function updateAiSettingsVisibility() {
     // Disable models not supporting image-to-image task (like FLUX.1-schnell served by nscale)
     const fluxOption = aiCloudModel.querySelector('option[value="black-forest-labs/FLUX.1-schnell"]');
     if (fluxOption) {
-        if (mode === 'img2img') {
+        if (mode === 'img2img' || mode === 'scribble') {
             fluxOption.disabled = true;
             if (aiCloudModel.value === 'black-forest-labs/FLUX.1-schnell') {
                 aiCloudModel.value = 'stabilityai/stable-diffusion-xl-base-1.0';
             }
         } else {
             fluxOption.disabled = false;
+        }
+    }
+    
+    // Toggle tokens based on selected cloud model
+    if (engine === 'cloud') {
+        if (aiCloudModel.value === 'gemini-3.1-flash-image') {
+            if (hfTokenGroup) hfTokenGroup.classList.add('hidden');
+            if (geminiTokenGroup) geminiTokenGroup.classList.remove('hidden');
+        } else {
+            if (hfTokenGroup) hfTokenGroup.classList.remove('hidden');
+            if (geminiTokenGroup) geminiTokenGroup.classList.add('hidden');
         }
     }
     
@@ -1227,6 +1235,10 @@ if (aiEdgeAlgorithm) {
     aiEdgeAlgorithm.addEventListener('change', updateAiSettingsVisibility);
 }
 
+if (aiEngine) {
+    aiEngine.addEventListener('change', updateAiSettingsVisibility);
+}
+
 modeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         const newMode = btn.getAttribute('data-mode');
@@ -1235,13 +1247,15 @@ modeBtns.forEach(btn => {
         // Auto-switch engine based on mode
         if (newMode === 'text') {
             aiEngine.value = 'cloud';
-            if (aiEngineLabel) aiEngineLabel.textContent = 'Cloud API (Hugging Face - Fast & Free)';
         } else if (newMode === 'filter') {
             aiEngine.value = 'filter';
-            if (aiEngineLabel) aiEngineLabel.textContent = 'Fast Filter (Local OpenCV / AnimeGAN)';
         } else {
-            aiEngine.value = 'local';
-            if (aiEngineLabel) aiEngineLabel.textContent = 'Local CPU (PyTorch - Slow & Local)';
+            // Default S2I / I2I to local, but if Gemini is selected, default to cloud
+            if (aiCloudModel.value === 'gemini-3.1-flash-image') {
+                aiEngine.value = 'cloud';
+            } else {
+                aiEngine.value = 'local';
+            }
         }
         
         modeBtns.forEach(b => b.classList.remove('active'));
@@ -1252,28 +1266,42 @@ modeBtns.forEach(btn => {
     });
 });
 
-// Load Hugging Face API Token (try localStorage first, fallback to server configuration)
+// Load API Tokens (try localStorage first, fallback to server configuration)
 if (hfTokenInput) {
     const localToken = localStorage.getItem('hf_token');
     if (localToken) {
         hfTokenInput.value = localToken;
-    } else {
-        // Fetch from server config
-        fetch('/api/get_config')
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.hf_token) {
-                    hfTokenInput.value = data.hf_token;
-                    localStorage.setItem('hf_token', data.hf_token);
-                }
-            })
-            .catch(err => console.error("Error fetching hf_token from server config:", err));
     }
-    
     hfTokenInput.addEventListener('input', () => {
         localStorage.setItem('hf_token', hfTokenInput.value.trim());
     });
 }
+if (geminiTokenInput) {
+    const localGeminiToken = localStorage.getItem('gemini_token');
+    if (localGeminiToken) {
+        geminiTokenInput.value = localGeminiToken;
+        if (geminiTokenLink) geminiTokenLink.style.display = 'none';
+    }
+    geminiTokenInput.addEventListener('input', () => {
+        localStorage.setItem('gemini_token', geminiTokenInput.value.trim());
+    });
+}
+
+// Fetch from server config to populate automatically if available
+fetch('/api/get_config')
+    .then(res => res.json())
+    .then(data => {
+        if (data && data.hf_token && hfTokenInput) {
+            hfTokenInput.value = data.hf_token;
+            localStorage.setItem('hf_token', data.hf_token);
+        }
+        if (data && data.gemini_token && geminiTokenInput) {
+            geminiTokenInput.value = data.gemini_token;
+            localStorage.setItem('gemini_token', data.gemini_token);
+            if (geminiTokenLink) geminiTokenLink.style.display = 'none';
+        }
+    })
+    .catch(err => console.error("Error fetching config from server:", err));
 
 
 // HTML5 Doodle Canvas Drawing Logic
@@ -1455,12 +1483,24 @@ if (aiGenerateBtn) {
             return;
         }
         
-        const engine = aiEngine.value;
+        let engine = aiEngine.value;
         const hfToken = hfTokenInput.value.trim();
+        const geminiToken = geminiTokenInput ? geminiTokenInput.value.trim() : "";
+        const selectedCloudModel = aiCloudModel ? aiCloudModel.value : "";
         
-        if (engine === 'cloud' && !hfToken) {
-            alert("Please enter a Hugging Face API Token for Cloud generation!");
-            return;
+        if (engine === 'cloud') {
+            if (selectedCloudModel === 'gemini-3.1-flash-image') {
+                engine = 'gemini';
+                if (!geminiToken) {
+                    alert("Please enter a Google Gemini API Key for Gemini model generation!");
+                    return;
+                }
+            } else {
+                if (!hfToken) {
+                    alert("Please enter a Hugging Face API Token for Cloud generation!");
+                    return;
+                }
+            }
         }
         
         // Disable the button to prevent double-clicks
@@ -1544,7 +1584,8 @@ if (aiGenerateBtn) {
         formData.append('strength', aiStrength.value);
         formData.append('engine', engine);
         formData.append('hf_token', hfToken);
-        formData.append('cloud_model', aiCloudModel.value);
+        formData.append('gemini_token', geminiToken);
+        formData.append('cloud_model', selectedCloudModel);
         
         const aiLocalModel = document.getElementById('ai-local-model');
         if (aiLocalModel) {
