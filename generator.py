@@ -597,7 +597,7 @@ class EpaperAIGenerator:
                         pass
                     
                     if response.status_code == 429:
-                        raise RuntimeError("⚠️ 您的 Gemini 免費配額今日已達上限！請切換回 Hugging Face 雲端模型，或是明日再試。")
+                        raise RuntimeError(f"⚠️ Gemini API 請求過多 (429)！可能是配額限制或尚未開放免費使用。\nGoogle 原始錯誤訊息：{err_msg}")
                     else:
                         raise RuntimeError(f"Gemini API Error ({response.status_code}): {err_msg}")
                     
