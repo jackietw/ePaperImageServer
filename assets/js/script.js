@@ -1237,8 +1237,8 @@ modeBtns.forEach(btn => {
         } else if (newMode === 'filter') {
             aiEngine.value = 'filter';
         } else {
-            // Default S2I / I2I to local, but if Gemini is selected, default to cloud
-            if (aiCloudModel.value === 'gemini-2.5-flash-image') {
+            // Default S2I / I2I to local, but if Pollinations is selected, default to cloud
+            if (aiCloudModel.value === 'pollinations') {
                 aiEngine.value = 'cloud';
             } else {
                 aiEngine.value = 'local';
@@ -1258,14 +1258,9 @@ fetch('/api/get_config')
     .then(res => res.json())
     .then(data => {
         const has_hf_token = data.has_hf_token === true;
-        const has_gemini_token = data.has_gemini_token === true;
         
         if (aiCloudModel) {
-            // Remove Gemini option if no token in backend
-            if (!has_gemini_token) {
-                const geminiOpt = aiCloudModel.querySelector('option[value="gemini-2.5-flash-image"]');
-                if (geminiOpt) geminiOpt.remove();
-            }
+            // No token checking needed for Pollinations as it is free
             
             // Remove HF options if no token in backend
             if (!has_hf_token) {
@@ -1472,8 +1467,8 @@ if (aiGenerateBtn) {
         const selectedCloudModel = aiCloudModel ? aiCloudModel.value : "";
         
         if (engine === 'cloud') {
-            if (selectedCloudModel === 'gemini-2.5-flash-image') {
-                engine = 'gemini';
+            if (selectedCloudModel === 'pollinations') {
+                engine = 'pollinations';
             }
         }
         
