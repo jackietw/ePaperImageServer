@@ -1132,6 +1132,27 @@ function updateAiSettingsVisibility() {
     const aiEdgeAlgorithmGroup = document.getElementById('ai-edge-algorithm-group');
 
     // Mode specific display
+    const pollinationsOpt = aiCloudModel ? aiCloudModel.querySelector('option[value="pollinations"]') : null;
+    if (pollinationsOpt) {
+        if (mode === 'scribble') {
+            pollinationsOpt.disabled = true;
+            pollinationsOpt.textContent = 'Pollinations.AI (Not Supported in Scribble)';
+            if (aiCloudModel.value === 'pollinations') {
+                const availableOpt = Array.from(aiCloudModel.options).find(o => !o.disabled);
+                if (availableOpt) {
+                    aiCloudModel.value = availableOpt.value;
+                } else {
+                    aiEngine.value = 'local';
+                    cloudConfig.classList.add('hidden');
+                    if (localConfig) localConfig.classList.remove('hidden');
+                }
+            }
+        } else {
+            pollinationsOpt.disabled = false;
+            pollinationsOpt.textContent = 'Pollinations.AI (Free & No Token Required)';
+        }
+    }
+
     if (mode === 'text') {
         doodleContainer.classList.add('hidden');
         refContainer.classList.add('hidden');
@@ -1268,16 +1289,6 @@ fetch('/api/get_config')
                 const sdOpt = aiCloudModel.querySelector('option[value="stabilityai/stable-diffusion-xl-base-1.0"]');
                 if (fluxOpt) fluxOpt.remove();
                 if (sdOpt) sdOpt.remove();
-            }
-            
-            // If both are missing, hide the Cloud API entirely from Engine Select
-            if (!has_gemini_token && !has_hf_token) {
-                if (aiEngine) {
-                    const cloudEngineOpt = aiEngine.querySelector('option[value="cloud"]');
-                    if (cloudEngineOpt) cloudEngineOpt.remove();
-                    aiEngine.value = 'local';
-                    updateAiSettingsVisibility();
-                }
             }
         }
     })

@@ -43,6 +43,7 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 # Serve processed and generated images
 app.mount("/processed", StaticFiles(directory="processed"), name="processed")
 app.mount("/generated", StaticFiles(directory="generated"), name="generated")
+app.mount("/temp", StaticFiles(directory="temp_uploads"), name="temp")
 
 # Task Queue Management
 class TaskQueue:
@@ -90,7 +91,9 @@ async def process_queue():
                         engine=params.get('engine', 'cloud'),
                         cloud_model=params.get('cloud_model', ''),
                         local_model=params.get('local_model', ''),
-                        edge_algorithm=params.get('edge_algorithm', 'canny')
+                        edge_algorithm=params.get('edge_algorithm', 'canny'),
+                        base_url=params.get('base_url', ''),
+                        temp_img_path=temp_img_path
                     )
                     
                     if ai_generator.is_cancelled:
@@ -202,6 +205,7 @@ async def upload_image(image: UploadFile = File(...)):
 
 @app.post("/api/queue_generate")
 async def queue_generate(
+    request: Request,
     prompt: str = Form(...),
     negative_prompt: str = Form(""),
     mode: str = Form("text"),
@@ -238,7 +242,8 @@ async def queue_generate(
                 "engine": engine,
                 "cloud_model": cloud_model,
                 "local_model": local_model,
-                "edge_algorithm": edge_algorithm
+                "edge_algorithm": edge_algorithm,
+                "base_url": str(request.base_url)
             }
         }
         
@@ -445,8 +450,7 @@ async def server_status():
 def get_config():
     ai_generator.load_config()
     return {
-        "has_hf_token": bool(ai_generator.hf_token),
-        "has_gemini_token": bool(getattr(ai_generator, "gemini_token", ""))
+        "has_hf_token": bool(ai_generator.hf_token)
     }
 
 @app.get("/api/list_images")

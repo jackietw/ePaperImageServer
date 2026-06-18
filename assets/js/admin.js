@@ -133,14 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const setLatestBtn = document.createElement('button');
         setLatestBtn.className = 'set-latest-btn';
-        setLatestBtn.textContent = 'ðŸ–¼ï¸';
+        setLatestBtn.textContent = '?–¼ï¸?;
         setLatestBtn.addEventListener('click', () => {
             setAsLatest(image.name);
         });
 
         const delBtn = document.createElement('button');
         delBtn.className = 'delete-btn';
-        delBtn.textContent = 'ðŸ—‘ï¸';
+        delBtn.textContent = '??ï¸?;
         delBtn.addEventListener('click', () => {
             openConfirmModal(image.name);
         });

@@ -153,11 +153,8 @@ class EpaperAIGenerator:
                 with open(self.config_path, "r", encoding="utf-8") as f:
                     config = json.load(f)
                     self.hf_token = config.get("hf_token", "")
-                    self.gemini_token = config.get("gemini_token", "")
                     if self.hf_token:
                         print("Loaded Hugging Face token from config.json")
-                    if self.gemini_token:
-                        print("Loaded Gemini API token from config.json")
             except Exception as e:
                 print("Failed to load config.json:", e)
 
@@ -323,11 +320,7 @@ class EpaperAIGenerator:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-    def generate(self, prompt: str, negative_prompt: str = "", mode: str = "text", 
-                  steps: int = 20, seed: int = -1, strength: float = 0.75, 
-                  input_image: Image.Image = None, engine: str = "cloud", 
-                  cloud_model: str = "black-forest-labs/FLUX.1-schnell",
-                  local_model: str = "Lykon/dreamshaper-8", edge_algorithm: str = "canny") -> Image.Image:
+    def generate(self, prompt, negative_prompt="", mode="text", steps=20, seed=-1, strength=0.75, input_image=None, engine="local", cloud_model="", local_model="", edge_algorithm="canny", base_url="", temp_img_path="") -> Image.Image:
         """
         Generate an art image based on prompt and parameters.
         - engine: "cloud" (Hugging Face API) or "local" (Local PyTorch CPU - Scribble only)
@@ -553,10 +546,16 @@ class EpaperAIGenerator:
                 self.current_message = f"Pollinations.AI generating image..."
                 
                 import requests
+                import os
                 import urllib.parse
                 
                 encoded_prompt = urllib.parse.quote(prompt)
                 api_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?nologo=true"
+                
+                if mode in ["img2img", "scribble"] and input_image and temp_img_path and base_url:
+                    filename = os.path.basename(temp_img_path)
+                    public_url = f"{base_url.rstrip('/')}/temp/{filename}"
+                    api_url += f"&image={urllib.parse.quote(public_url)}"
                 
                 response = requests.get(api_url, timeout=60)
                 

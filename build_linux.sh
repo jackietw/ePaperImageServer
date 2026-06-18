@@ -30,14 +30,12 @@ echo "[2/3] Configuring Hugging Face API Token..."
 echo "==================================================="
 
 read -p "Enter your Hugging Face API Token (free at huggingface.co, press Enter to skip): " HF_TOKEN
-read -p "Enter your Google Gemini API Key (free at aistudio.google.com, press Enter to skip): " GEMINI_TOKEN
 
-if [ ! -z "$HF_TOKEN" ] || [ ! -z "$GEMINI_TOKEN" ]; then
+if [ ! -z "$HF_TOKEN" ]; then
     echo "Writing config.json..."
     cat << EOF > config.json
 {
-  "hf_token": "$HF_TOKEN",
-  "gemini_token": "$GEMINI_TOKEN"
+  "hf_token": "$HF_TOKEN"
 }
 EOF
     echo "Tokens saved successfully!"
@@ -46,8 +44,7 @@ else
         echo "Creating default config.json..."
         cat << EOF > config.json
 {
-  "hf_token": "",
-  "gemini_token": ""
+  "hf_token": ""
 }
 EOF
     else
