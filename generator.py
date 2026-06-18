@@ -559,7 +559,7 @@ class EpaperAIGenerator:
                 import requests
                 import base64
                 
-                model_name = cloud_model if cloud_model else "gemini-3.1-flash-image"
+                model_name = cloud_model if cloud_model else "gemini-2.5-flash-image"
                 api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={token}"
                 
                 payload = {

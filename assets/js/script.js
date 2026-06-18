@@ -1238,7 +1238,7 @@ modeBtns.forEach(btn => {
             aiEngine.value = 'filter';
         } else {
             // Default S2I / I2I to local, but if Gemini is selected, default to cloud
-            if (aiCloudModel.value === 'gemini-3.1-flash-image') {
+            if (aiCloudModel.value === 'gemini-2.5-flash-image') {
                 aiEngine.value = 'cloud';
             } else {
                 aiEngine.value = 'local';
@@ -1263,7 +1263,7 @@ fetch('/api/get_config')
         if (aiCloudModel) {
             // Remove Gemini option if no token in backend
             if (!has_gemini_token) {
-                const geminiOpt = aiCloudModel.querySelector('option[value="gemini-3.1-flash-image"]');
+                const geminiOpt = aiCloudModel.querySelector('option[value="gemini-2.5-flash-image"]');
                 if (geminiOpt) geminiOpt.remove();
             }
             
@@ -1472,7 +1472,7 @@ if (aiGenerateBtn) {
         const selectedCloudModel = aiCloudModel ? aiCloudModel.value : "";
         
         if (engine === 'cloud') {
-            if (selectedCloudModel === 'gemini-3.1-flash-image') {
+            if (selectedCloudModel === 'gemini-2.5-flash-image') {
                 engine = 'gemini';
             }
         }
