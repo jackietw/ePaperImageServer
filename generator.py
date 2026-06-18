@@ -326,7 +326,7 @@ class EpaperAIGenerator:
     def generate(self, prompt: str, negative_prompt: str = "", mode: str = "text", 
                   steps: int = 20, seed: int = -1, strength: float = 0.75, 
                   input_image: Image.Image = None, engine: str = "cloud", 
-                  hf_token: str = "", cloud_model: str = "black-forest-labs/FLUX.1-schnell",
+                  cloud_model: str = "black-forest-labs/FLUX.1-schnell",
                   local_model: str = "Lykon/dreamshaper-8", edge_algorithm: str = "canny") -> Image.Image:
         """
         Generate an art image based on prompt and parameters.
@@ -343,8 +343,8 @@ class EpaperAIGenerator:
             self.unload_pytorch()
             self.model_id = local_model
             
-        # Determine final token to use
-        token = hf_token.strip() if hf_token else self.hf_token
+        # Determine final token to use from config
+        token = self.hf_token
         
         # Translate CJK characters
         prompt = translate_to_english_if_needed(prompt)
@@ -552,24 +552,24 @@ class EpaperAIGenerator:
                 self.current_status = "generating"
                 self.current_message = f"Gemini API generating image ({mode} mode)..."
                 
-                token = kwargs.get("gemini_token", "") or getattr(self, "gemini_token", "")
+                token = getattr(self, "gemini_token", "")
                 if not token:
-                    raise ValueError("Google Gemini API Key is missing. Please set it in config or UI.")
+                    raise ValueError("Google Gemini API Key is missing. Please set it in config.json.")
                 
                 import requests
                 import base64
                 
-                # Ensure the model format matches Google's API conventions
-                # The user's input model string is typically "gemini-3.1-flash-image"
                 model_name = cloud_model if cloud_model else "gemini-3.1-flash-image"
-                api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:predict?key={token}"
+                api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={token}"
                 
                 payload = {
-                    "instances": [
-                        { "prompt": prompt }
+                    "contents": [
+                        {
+                            "parts": [{"text": prompt}]
+                        }
                     ],
-                    "parameters": {
-                        "sampleCount": 1
+                    "generationConfig": {
+                        "responseModalities": ["IMAGE"]
                     }
                 }
                 
@@ -578,9 +578,12 @@ class EpaperAIGenerator:
                     rgb_img = input_image.convert("RGB")
                     rgb_img.save(buffered, format="JPEG")
                     img_b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-                    payload["instances"][0]["image"] = {
-                        "bytesBase64Encoded": img_b64
-                    }
+                    payload["contents"][0]["parts"].append({
+                        "inlineData": {
+                            "mimeType": "image/jpeg",
+                            "data": img_b64
+                        }
+                    })
                 
                 response = requests.post(api_url, json=payload)
                 

@@ -1098,11 +1098,7 @@ if (uploadTabBtn && aiTabBtn && aiSection) {
 const aiEngine = document.getElementById('ai-engine');
 const cloudConfig = document.getElementById('ai-cloud-config-group');
 const aiCloudModel = document.getElementById('ai-cloud-model');
-const hfTokenInput = document.getElementById('ai-hf-token');
-const hfTokenGroup = document.getElementById('ai-hf-token-group');
-const geminiTokenInput = document.getElementById('ai-gemini-token');
-const geminiTokenGroup = document.getElementById('ai-gemini-token-group');
-const geminiTokenLink = document.getElementById('ai-gemini-token-link');
+// Tokens are managed backend-only
 const aiStepsGroup = document.getElementById('ai-steps-group');
 const aiSteps = document.getElementById('ai-steps');
 const aiStepsVal = document.getElementById('ai-steps-val');
@@ -1189,16 +1185,7 @@ function updateAiSettingsVisibility() {
         }
     }
     
-    // Toggle tokens based on selected cloud model
-    if (engine === 'cloud') {
-        if (aiCloudModel.value === 'gemini-3.1-flash-image') {
-            if (hfTokenGroup) hfTokenGroup.classList.add('hidden');
-            if (geminiTokenGroup) geminiTokenGroup.classList.remove('hidden');
-        } else {
-            if (hfTokenGroup) hfTokenGroup.classList.remove('hidden');
-            if (geminiTokenGroup) geminiTokenGroup.classList.add('hidden');
-        }
-    }
+    // (Token toggle removed as tokens are now backend-only)
     
     // Engine specific steps adjustment
     if (engine === 'cloud') {
@@ -1266,39 +1253,37 @@ modeBtns.forEach(btn => {
     });
 });
 
-// Load API Tokens (try localStorage first, fallback to server configuration)
-if (hfTokenInput) {
-    const localToken = localStorage.getItem('hf_token');
-    if (localToken) {
-        hfTokenInput.value = localToken;
-    }
-    hfTokenInput.addEventListener('input', () => {
-        localStorage.setItem('hf_token', hfTokenInput.value.trim());
-    });
-}
-if (geminiTokenInput) {
-    const localGeminiToken = localStorage.getItem('gemini_token');
-    if (localGeminiToken) {
-        geminiTokenInput.value = localGeminiToken;
-        if (geminiTokenLink) geminiTokenLink.style.display = 'none';
-    }
-    geminiTokenInput.addEventListener('input', () => {
-        localStorage.setItem('gemini_token', geminiTokenInput.value.trim());
-    });
-}
-
-// Fetch from server config to populate automatically if available
+// Fetch from server config to dynamically show/hide Cloud Models
 fetch('/api/get_config')
     .then(res => res.json())
     .then(data => {
-        if (data && data.hf_token && hfTokenInput) {
-            hfTokenInput.value = data.hf_token;
-            localStorage.setItem('hf_token', data.hf_token);
-        }
-        if (data && data.gemini_token && geminiTokenInput) {
-            geminiTokenInput.value = data.gemini_token;
-            localStorage.setItem('gemini_token', data.gemini_token);
-            if (geminiTokenLink) geminiTokenLink.style.display = 'none';
+        const has_hf_token = data.has_hf_token === true;
+        const has_gemini_token = data.has_gemini_token === true;
+        
+        if (aiCloudModel) {
+            // Remove Gemini option if no token in backend
+            if (!has_gemini_token) {
+                const geminiOpt = aiCloudModel.querySelector('option[value="gemini-3.1-flash-image"]');
+                if (geminiOpt) geminiOpt.remove();
+            }
+            
+            // Remove HF options if no token in backend
+            if (!has_hf_token) {
+                const fluxOpt = aiCloudModel.querySelector('option[value="black-forest-labs/FLUX.1-schnell"]');
+                const sdOpt = aiCloudModel.querySelector('option[value="stabilityai/stable-diffusion-xl-base-1.0"]');
+                if (fluxOpt) fluxOpt.remove();
+                if (sdOpt) sdOpt.remove();
+            }
+            
+            // If both are missing, hide the Cloud API entirely from Engine Select
+            if (!has_gemini_token && !has_hf_token) {
+                if (aiEngine) {
+                    const cloudEngineOpt = aiEngine.querySelector('option[value="cloud"]');
+                    if (cloudEngineOpt) cloudEngineOpt.remove();
+                    aiEngine.value = 'local';
+                    updateAiSettingsVisibility();
+                }
+            }
         }
     })
     .catch(err => console.error("Error fetching config from server:", err));
@@ -1484,22 +1469,11 @@ if (aiGenerateBtn) {
         }
         
         let engine = aiEngine.value;
-        const hfToken = hfTokenInput.value.trim();
-        const geminiToken = geminiTokenInput ? geminiTokenInput.value.trim() : "";
         const selectedCloudModel = aiCloudModel ? aiCloudModel.value : "";
         
         if (engine === 'cloud') {
             if (selectedCloudModel === 'gemini-3.1-flash-image') {
                 engine = 'gemini';
-                if (!geminiToken) {
-                    alert("Please enter a Google Gemini API Key for Gemini model generation!");
-                    return;
-                }
-            } else {
-                if (!hfToken) {
-                    alert("Please enter a Hugging Face API Token for Cloud generation!");
-                    return;
-                }
             }
         }
         
@@ -1521,7 +1495,7 @@ if (aiGenerateBtn) {
                 const enhanceResponse = await fetch('/api/enhance_prompt', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: prompt, hf_token: hfToken })
+                    body: JSON.stringify({ prompt: prompt })
                 });
                 const data = await enhanceResponse.json();
                 if (data.success && data.positive) {
@@ -1583,8 +1557,6 @@ if (aiGenerateBtn) {
         formData.append('seed', aiSeedInput.value);
         formData.append('strength', aiStrength.value);
         formData.append('engine', engine);
-        formData.append('hf_token', hfToken);
-        formData.append('gemini_token', geminiToken);
         formData.append('cloud_model', selectedCloudModel);
         
         const aiLocalModel = document.getElementById('ai-local-model');
