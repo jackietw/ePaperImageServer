@@ -35,7 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load Images
     function loadImages() {
         fetch('/api/list_images')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error("HTTP error " + response.status);
+                return response.json();
+            })
             .then(data => {
                 galleryGrid.innerHTML = ''; // Clear loading text
 
@@ -45,12 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         galleryGrid.appendChild(card);
                     });
                 } else {
-                    galleryGrid.innerHTML = '<div class="loading-text" style="grid-column: 1/-1; text-align: center;">No uploaded images currently.</div>';
+                    galleryGrid.innerHTML = '<div class="loading-text" style="grid-column: 1/-1; text-align: center;">目前沒有任何已上傳的圖片。</div>';
                 }
             })
             .catch(err => {
                 console.error('Error fetching images:', err);
-                galleryGrid.innerHTML = '<div class="loading-text" style="color: var(--danger-color);">Failed to load images.</div>';
+                galleryGrid.innerHTML = '<div class="loading-text" style="color: #f87171; grid-column: 1/-1; text-align: center; padding: 30px; line-height: 1.8; background: rgba(239,68,68,0.1); border-radius: 12px; border: 1px solid rgba(239,68,68,0.3);"><h3 style="margin-bottom: 10px; color: #fca5a5;">⚠️ 無法連接到後端伺服器 (讀取圖片清單失敗)</h3><p style="font-size: 0.95rem; color: #cbd5e1;">請確認後端伺服器 (執行專案目錄下的 <b>run.bat</b> 或 <b>python main.py</b>) 是否正在運行！<br>並請確保您是透過瀏覽器訪問網址 <a href="http://localhost:8000/admin.html" style="color: #60a5fa; text-decoration: underline;">http://localhost:8000/admin.html</a> 進入此頁面。</p></div>';
             });
     }
 
@@ -133,14 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const setLatestBtn = document.createElement('button');
         setLatestBtn.className = 'set-latest-btn';
-        setLatestBtn.textContent = '?���?;
+        setLatestBtn.textContent = '📲';
         setLatestBtn.addEventListener('click', () => {
             setAsLatest(image.name);
         });
 
         const delBtn = document.createElement('button');
         delBtn.className = 'delete-btn';
-        delBtn.textContent = '??�?;
+        delBtn.textContent = '🗑️';
         delBtn.addEventListener('click', () => {
             openConfirmModal(image.name);
         });

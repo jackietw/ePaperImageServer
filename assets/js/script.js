@@ -1053,40 +1053,40 @@ const aiSection = document.getElementById('ai-section');
 if (uploadTabBtn && aiTabBtn && aiSection) {
     aiTabBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        uploadTabBtn.classList.remove('active');
-        aiTabBtn.classList.add('active');
+        if (uploadTabBtn) uploadTabBtn.classList.remove('active');
+        if (aiTabBtn) aiTabBtn.classList.add('active');
         
         // Save currently active panel in Upload flow
-        if (!uploadSection.classList.contains('hidden')) {
+        if (uploadSection && !uploadSection.classList.contains('hidden')) {
             activeUploadPanel = 'upload-section';
-        } else if (!editorSection.classList.contains('hidden')) {
+        } else if (editorSection && !editorSection.classList.contains('hidden')) {
             activeUploadPanel = 'editor-section';
-        } else if (!resultSection.classList.contains('hidden')) {
+        } else if (resultSection && !resultSection.classList.contains('hidden')) {
             activeUploadPanel = 'result-section';
         }
         
         // Hide upload flow panels
-        uploadSection.classList.add('hidden');
-        editorSection.classList.add('hidden');
-        resultSection.classList.add('hidden');
+        if (uploadSection) uploadSection.classList.add('hidden');
+        if (editorSection) editorSection.classList.add('hidden');
+        if (resultSection) resultSection.classList.add('hidden');
         
         // Show AI generator panel
-        aiSection.classList.remove('hidden');
+        if (aiSection) aiSection.classList.remove('hidden');
         
         // Lazy initialize drawing canvas if scribble mode was active
         if (currentAiMode === 'scribble') {
-            initDoodleCanvasOnce();
+            try { initDoodleCanvasOnce(); } catch(err) { console.error(err); }
         }
-        updateAiSettingsVisibility();
+        try { updateAiSettingsVisibility(); } catch(err) { console.error("Error updating AI settings visibility:", err); }
     });
     
     uploadTabBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        aiTabBtn.classList.remove('active');
-        uploadTabBtn.classList.add('active');
+        if (aiTabBtn) aiTabBtn.classList.remove('active');
+        if (uploadTabBtn) uploadTabBtn.classList.add('active');
         
         // Hide AI generator panel
-        aiSection.classList.add('hidden');
+        if (aiSection) aiSection.classList.add('hidden');
         
         // Restore previously active upload flow panel
         const panel = document.getElementById(activeUploadPanel);
@@ -1113,6 +1113,7 @@ const modeBtns = document.querySelectorAll('.ai-mode-btn');
 let currentAiMode = 'text';
 
 function updateAiSettingsVisibility() {
+    if (!aiEngine) return;
     const engine = aiEngine.value;
     const mode = currentAiMode;
     const localConfig = document.getElementById('ai-local-config-group');
@@ -1122,10 +1123,10 @@ function updateAiSettingsVisibility() {
     
     // Toggle Config Groups based on Engine
     if (engine === 'cloud') {
-        cloudConfig.classList.remove('hidden');
+        if (cloudConfig) cloudConfig.classList.remove('hidden');
         if (localConfig) localConfig.classList.add('hidden');
     } else {
-        cloudConfig.classList.add('hidden');
+        if (cloudConfig) cloudConfig.classList.add('hidden');
         if (localConfig) localConfig.classList.remove('hidden');
     }
     
@@ -1137,13 +1138,13 @@ function updateAiSettingsVisibility() {
         if (mode === 'scribble') {
             pollinationsOpt.disabled = true;
             pollinationsOpt.textContent = 'Pollinations.AI (Not Supported in Scribble)';
-            if (aiCloudModel.value === 'pollinations') {
+            if (aiCloudModel && aiCloudModel.value === 'pollinations') {
                 const availableOpt = Array.from(aiCloudModel.options).find(o => !o.disabled);
                 if (availableOpt) {
                     aiCloudModel.value = availableOpt.value;
-                } else {
+                } else if (aiEngine) {
                     aiEngine.value = 'local';
-                    cloudConfig.classList.add('hidden');
+                    if (cloudConfig) cloudConfig.classList.add('hidden');
                     if (localConfig) localConfig.classList.remove('hidden');
                 }
             }
@@ -1154,35 +1155,35 @@ function updateAiSettingsVisibility() {
     }
 
     if (mode === 'text') {
-        doodleContainer.classList.add('hidden');
-        refContainer.classList.add('hidden');
-        aiStrengthGroup.classList.add('hidden');
+        if (doodleContainer) doodleContainer.classList.add('hidden');
+        if (refContainer) refContainer.classList.add('hidden');
+        if (aiStrengthGroup) aiStrengthGroup.classList.add('hidden');
         if (aiEdgeAlgorithmGroup) aiEdgeAlgorithmGroup.classList.add('hidden');
-        aiNegPromptGroup.classList.remove('hidden');
+        if (aiNegPromptGroup) aiNegPromptGroup.classList.remove('hidden');
         if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
     } else if (mode === 'scribble') {
-        doodleContainer.classList.remove('hidden');
-        refContainer.classList.add('hidden');
-        aiStrengthGroup.classList.add('hidden');
+        if (doodleContainer) doodleContainer.classList.remove('hidden');
+        if (refContainer) refContainer.classList.add('hidden');
+        if (aiStrengthGroup) aiStrengthGroup.classList.add('hidden');
         if (aiEdgeAlgorithmGroup) aiEdgeAlgorithmGroup.classList.add('hidden');
-        aiNegPromptGroup.classList.remove('hidden');
+        if (aiNegPromptGroup) aiNegPromptGroup.classList.remove('hidden');
         if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
-        initDoodleCanvasOnce();
+        try { initDoodleCanvasOnce(); } catch(e){}
     } else if (mode === 'img2img') {
-        doodleContainer.classList.add('hidden');
-        refContainer.classList.remove('hidden');
+        if (doodleContainer) doodleContainer.classList.add('hidden');
+        if (refContainer) refContainer.classList.remove('hidden');
         if (aiEdgeAlgorithmGroup) aiEdgeAlgorithmGroup.classList.remove('hidden');
         
         const aiEdgeAlgorithm = document.getElementById('ai-edge-algorithm');
-        if (aiEdgeAlgorithm && aiEdgeAlgorithm.value !== 'img2img') {
-            // ControlNet enforces structure, no strength slider needed
-            aiStrengthGroup.classList.add('hidden');
-        } else {
-            // Standard img2img
-            aiStrengthGroup.classList.remove('hidden');
+        if (aiStrengthGroup) {
+            if (aiEdgeAlgorithm && aiEdgeAlgorithm.value !== 'img2img') {
+                aiStrengthGroup.classList.add('hidden');
+            } else {
+                aiStrengthGroup.classList.remove('hidden');
+            }
         }
         
-        aiNegPromptGroup.classList.remove('hidden');
+        if (aiNegPromptGroup) aiNegPromptGroup.classList.remove('hidden');
         if (aiPromptGroup) aiPromptGroup.classList.remove('hidden');
     }
 
@@ -1194,41 +1195,42 @@ function updateAiSettingsVisibility() {
     if (localModelGroup) localModelGroup.classList.remove('hidden');
 
     // Disable models not supporting image-to-image task (like FLUX.1-schnell served by nscale)
-    const fluxOption = aiCloudModel.querySelector('option[value="black-forest-labs/FLUX.1-schnell"]');
-    if (fluxOption) {
-        if (mode === 'img2img' || mode === 'scribble') {
-            fluxOption.disabled = true;
-            if (aiCloudModel.value === 'black-forest-labs/FLUX.1-schnell') {
-                aiCloudModel.value = 'stabilityai/stable-diffusion-xl-base-1.0';
+    if (aiCloudModel) {
+        const fluxOption = aiCloudModel.querySelector('option[value="black-forest-labs/FLUX.1-schnell"]');
+        if (fluxOption) {
+            if (mode === 'img2img' || mode === 'scribble') {
+                fluxOption.disabled = true;
+                if (aiCloudModel.value === 'black-forest-labs/FLUX.1-schnell') {
+                    aiCloudModel.value = 'stabilityai/stable-diffusion-xl-base-1.0';
+                }
+            } else {
+                fluxOption.disabled = false;
             }
-        } else {
-            fluxOption.disabled = false;
         }
     }
     
-    // (Token toggle removed as tokens are now backend-only)
-    
     // Engine specific steps adjustment
-    if (engine === 'cloud') {
-        const model = aiCloudModel.value;
-        if (model.includes('schnell')) {
-            aiStepsGroup.classList.add('hidden'); // FLUX.1-schnell handles steps internally (4)
+    if (aiStepsGroup && aiSteps) {
+        if (engine === 'cloud') {
+            const model = aiCloudModel ? aiCloudModel.value : "";
+            if (model.includes('schnell')) {
+                aiStepsGroup.classList.add('hidden'); // FLUX.1-schnell handles steps internally (4)
+            } else {
+                aiStepsGroup.classList.remove('hidden');
+                aiSteps.min = 1;
+                aiSteps.max = 30;
+                if (parseInt(aiSteps.value) > 30 || parseInt(aiSteps.value) < 1) aiSteps.value = 4;
+                if (aiStepsVal) aiStepsVal.textContent = aiSteps.value;
+            }
+        } else if (engine === 'filter') {
+            aiStepsGroup.classList.add('hidden'); // Filter has no steps
         } else {
             aiStepsGroup.classList.remove('hidden');
-            aiSteps.min = 1;
-            aiSteps.max = 30;
-            if (parseInt(aiSteps.value) > 30 || parseInt(aiSteps.value) < 1) aiSteps.value = 4;
-            aiStepsVal.textContent = aiSteps.value;
+            aiSteps.min = 5;
+            aiSteps.max = 50;
+            if (parseInt(aiSteps.value) < 5 || parseInt(aiSteps.value) > 50 || parseInt(aiSteps.value) === 1) aiSteps.value = 30;
+            if (aiStepsVal) aiStepsVal.textContent = aiSteps.value;
         }
-    } else if (engine === 'filter') {
-        aiStepsGroup.classList.add('hidden'); // Filter has no steps
-    } else {
-        // Local CPU mode (Scribble only, requires steps for PyTorch SD 1.5)
-        aiStepsGroup.classList.remove('hidden');
-        aiSteps.min = 5;
-        aiSteps.max = 50;
-        if (parseInt(aiSteps.value) < 5 || parseInt(aiSteps.value) > 50 || parseInt(aiSteps.value) === 1) aiSteps.value = 30;
-        aiStepsVal.textContent = aiSteps.value;
     }
 }
 
